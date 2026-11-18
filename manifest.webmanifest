@@ -1,0 +1,16 @@
+{
+  "name": "My Gym",
+  "short_name": "My Gym",
+  "description": "Personal workout planner and tracker built around my gym's machines.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0e0f0c",
+  "theme_color": "#0e0f0c",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
