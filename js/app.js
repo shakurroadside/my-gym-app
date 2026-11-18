@@ -1,11 +1,13 @@
 import { LIBRARY, LIB, MUSCLES } from './exercises.js';
 import { svg, animate } from './diagram.js';
 import { WHY, SCHEDULE, targets, defaultProgram } from './program.js';
-import { load, save, defaults, requestPersist, putPhoto, delPhoto, allPhotos, resizeImage, exportAll, importAll } from './store.js';
+import { load, save, defaults, requestPersist, putPhoto, delPhoto, allPhotos, getPhoto, resizeImage, exportAll, importAll } from './store.js';
 import { suggest, entryStats, workingSets, uid, dayKey, startOfWeek, fmtDate, fmtDur, fmtClock, fmtW, esc, toKg, e1rm } from './logic.js';
 import { lineChart } from './charts.js';
 import { bodyMap, MUSCLE_NAMES } from './bodymap.js';
 import { HOWTO, breathing, tempo } from './howto.js';
+import { FOODS, FOOD, FOOD_CATS, MEALS, MEAL_SLOTS, itemTotals } from './foods.js';
+import { getKey, setKey, estimatePlate } from './ai.js';
 
 let S = load();
 let saveT = 0;
@@ -62,6 +64,7 @@ const I = {
   plus: '<path d="M12 5v14M5 12h14"/>',
   cam: '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
   play: '<path d="M8 5v14l11-7z"/>',
+  food: '<path d="M7 3v8a2 2 0 0 0 4 0V3M9 11v10M17 3c-2 0-3 2.5-3 6s1 4 3 4v8"/>',
 };
 const icon = (n, cls = '') => `<svg viewBox="0 0 24 24" class="ic ${cls}" aria-hidden="true">${I[n]}</svg>`;
 
@@ -69,9 +72,9 @@ const icon = (n, cls = '') => `<svg viewBox="0 0 24 24" class="ic ${cls}" aria-h
 const TABS = [
   ['today', 'Today', 'home'],
   ['plan', 'Plan', 'plan'],
+  ['food', 'Food', 'food'],
   ['library', 'Exercises', 'lib'],
   ['progress', 'Progress', 'prog'],
-  ['settings', 'Settings', 'gear'],
 ];
 let route = location.hash.slice(1) || 'today';
 window.addEventListener('hashchange', () => { route = location.hash.slice(1) || 'today'; render(true); });
@@ -79,13 +82,14 @@ function go(r) { if (location.hash.slice(1) !== r) location.hash = r; else rende
 
 function render(scrollTop = false) {
   if (route === 'workout' && !S.active) route = 'today';
-  const views = { today: vToday, plan: vPlan, library: vLibrary, progress: vProgress, settings: vSettings, workout: vWorkout };
+  const views = { today: vToday, plan: vPlan, food: vFood, library: vLibrary, progress: vProgress, settings: vSettings, workout: vWorkout };
   const y = window.scrollY;
   main.innerHTML = (views[route] || vToday)();
   document.body.classList.toggle('in-workout', route === 'workout');
   $('#nav').innerHTML = TABS.map(([k, label, ic]) => `<button data-act="nav" data-to="${k}" class="${route === k ? 'on' : ''}">${icon(ic)}<span>${label}</span></button>`).join('');
   window.scrollTo(0, scrollTop ? 0 : y);
   if (route === 'progress') loadPhotos();
+  if (route === 'food') loadMealPhotos();
   tick();
 }
 
@@ -115,7 +119,7 @@ function vToday() {
   const hello = hr < 12 ? 'Good morning' : hr < 18 ? 'Good afternoon' : 'Good evening';
 
   return `
-  <header class="top"><div><p class="eyebrow">${fmtDate(Date.now(), { weekday: 'long', day: 'numeric', month: 'long' })}</p><h1>${hello}${S.profile.name ? ', ' + esc(S.profile.name) : ''}</h1></div></header>
+  <header class="top"><div><p class="eyebrow">${fmtDate(Date.now(), { weekday: 'long', day: 'numeric', month: 'long' })}</p><h1>${hello}${S.profile.name ? ', ' + esc(S.profile.name) : ''}</h1></div><button class="ib" data-act="nav" data-to="settings" aria-label="Settings">${icon('gear')}</button></header>
   ${isIOS && !standalone ? `<div class="card hint">📲 <b>Install on your iPhone:</b> tap the <b>Share</b> button in Safari → <b>Add to Home Screen</b>. It then opens like an app and works offline.</div>` : ''}
   ${resumable() ? `<div class="card undo-card"><div><b>Finished ${esc(resumable().dayName.split('·')[0].trim())} by mistake?</b><small>Ended ${fmtDur(Date.now() - resumable().end)} ago</small></div><button class="btn sm" data-act="wo-resume" data-id="${resumable().id}">↩︎ Resume</button></div>` : ''}
   ${S.active ? `<button class="card resume" data-act="nav" data-to="workout"><span class="pulse"></span><div><b>Workout in progress</b><small>${esc(S.active.dayName)} · started ${fmtDur(Date.now() - S.active.start)} ago</small></div><span class="chev">Resume ›</span></button>` : ''}
@@ -141,6 +145,7 @@ function vToday() {
     <div class="dots">${weekDots()}</div>
   </section>
 
+  ${(() => { const ft = dayTotals(dayKey(Date.now())); return `<button class="card food-card" data-act="nav" data-to="food"><div class="split"><div><p class="eyebrow">Food today</p><h3>${r0(ft.k)} / ${T.kcal} kcal</h3></div><span class="chev accent">Log food ›</span></div><div class="bar"><span style="width:${Math.min(100, (ft.k / T.kcal) * 100)}%"></span></div><p class="muted small">Protein ${r0(ft.p)} / ${T.protein} g</p></button>`; })()}
   <section class="card">
     <p class="eyebrow">Daily targets for fat loss</p>
     <div class="stats">
@@ -284,6 +289,248 @@ function photoUrl(p) {
   return ui.photoUrls[p.id];
 }
 
+// ───────────────────────── FOOD ─────────────────────────
+const foodOf = (id) => FOOD[id] || S.customFoods?.[id] || null;
+const entryFood = (e) => e.x || foodOf(e.fid) || { name: '?', portion: '', k: 0, p: 0, c: 0, f: 0 };
+const r0 = (n) => Math.round(n);
+function foodDay(day = ui.foodDay) {
+  S.food = S.food || {};
+  if (!S.food[day]) S.food[day] = { breakfast: [], lunch: [], dinner: [], snack: [], photos: {} };
+  return S.food[day];
+}
+const peekDay = (day) => S.food?.[day] || null;
+function slotTotals(list) {
+  const t = { k: 0, p: 0, c: 0, f: 0 };
+  for (const e of list || []) { const f = entryFood(e); t.k += f.k * e.q; t.p += f.p * e.q; t.c += f.c * e.q; t.f += f.f * e.q; }
+  return t;
+}
+function dayTotals(day) {
+  const d = peekDay(day);
+  const t = { k: 0, p: 0, c: 0, f: 0 };
+  if (!d) return t;
+  for (const [slot] of MEAL_SLOTS) { const s = slotTotals(d[slot]); t.k += s.k; t.p += s.p; t.c += s.c; t.f += s.f; }
+  return t;
+}
+const shiftDay = (key, n) => { const d = new Date(key + 'T12:00:00'); d.setDate(d.getDate() + n); return dayKey(d.getTime()); };
+const qtyTxt = (q) => (q === 0.5 ? '½' : q === 0.25 ? '¼' : q === 0.75 ? '¾' : q === 1.5 ? '1½' : String(q));
+const mealLookup = (id) => foodOf(id);
+
+function weekPlan() {
+  const wk = startOfWeek();
+  if (!S.mealPlan || S.mealPlan.week !== wk) {
+    S.mealPlan = { week: wk, days: Array.from({ length: 7 }, (_, i) => ({ breakfast: i % 4, lunch: (i + 1) % 4, dinner: (i + 2) % 4, snack: (i + 3) % 4 })) };
+    commit();
+  }
+  return S.mealPlan;
+}
+
+function vFood() {
+  ui.foodDay = ui.foodDay || dayKey(Date.now());
+  const today = dayKey(Date.now());
+  const T = targets(S.profile, latestWeight());
+  const tabs = `<div class="seg"><button class="${ui.foodTab !== 'plan' ? 'on' : ''}" data-act="food-tab" data-t="log">Food log</button><button class="${ui.foodTab === 'plan' ? 'on' : ''}" data-act="food-tab" data-t="plan">Meal plan</button></div>`;
+  if (ui.foodTab === 'plan') return `<header class="top"><div><p class="eyebrow">3 meals + 1 snack</p><h1>Meal plan</h1></div></header>${tabs}${vMealPlan(T)}`;
+
+  const t = dayTotals(ui.foodDay);
+  const left = T.kcal - t.k;
+  const label = ui.foodDay === today ? 'Today' : ui.foodDay === shiftDay(today, -1) ? 'Yesterday' : fmtDate(new Date(ui.foodDay + 'T12:00:00').getTime());
+  const pct = (a, b) => Math.min(100, (a / b) * 100);
+  const d = peekDay(ui.foodDay) || {};
+  const yest = peekDay(shiftDay(ui.foodDay, -1));
+  const plan = weekPlan();
+  const dow = (new Date(ui.foodDay + 'T12:00:00').getDay() + 6) % 7;
+  return `
+  <header class="top"><div><p class="eyebrow">Food</p><h1>${label}</h1></div>
+    <div class="daynav"><button class="ib" data-act="food-day" data-n="-1" aria-label="Previous day">${icon('back')}</button><button class="ib flip" data-act="food-day" data-n="1" aria-label="Next day" ${ui.foodDay >= today ? 'disabled' : ''}>${icon('back')}</button></div></header>
+  ${tabs}
+  <section class="card">
+    <div class="split"><div><b class="big-num">${r0(t.k)}</b> <span class="muted">/ ${T.kcal} kcal</span></div><b class="${left < 0 ? 'warn' : 'accent'}">${left >= 0 ? `${r0(left)} left` : `${r0(-left)} over`}</b></div>
+    <div class="bar"><span style="width:${pct(t.k, T.kcal)}%;${left < 0 ? 'background:var(--down)' : ''}"></span></div>
+    <div class="split small"><span>Protein <b>${r0(t.p)}</b> / ${T.protein} g</span><span class="muted">C ${r0(t.c)} g · F ${r0(t.f)} g</span></div>
+    <div class="bar thin2"><span style="width:${pct(t.p, T.protein)}%;background:var(--prot)"></span></div>
+  </section>
+  ${MEAL_SLOTS.map(([slot, title, emo]) => {
+    const list = d[slot] || [];
+    const st = slotTotals(list);
+    const pid = d.photos?.[slot];
+    const pm = MEALS[slot][plan.days[dow][slot]];
+    return `<section class="card meal">
+      <div class="split"><h3>${emo} ${title}</h3><span class="muted small">${r0(st.k)} kcal · ${r0(st.p)} g P</span></div>
+      ${pid ? `<div class="meal-photo"><img data-photo-id="${pid}" alt="Plate photo"><div class="btn-row"><button class="btn sm primary" data-act="ai-est" data-slot="${slot}">✨ Estimate calories</button><button class="btn sm" data-act="meal-photo-del" data-slot="${slot}">Remove photo</button></div></div>` : ''}
+      ${list.length ? `<ul class="food-list">${list.map((e, i) => { const f = entryFood(e); return `<li><button class="link" data-act="fe-edit" data-slot="${slot}" data-i="${i}"><span><b>${esc(f.name)}</b><small>${qtyTxt(e.q)} × ${esc(f.portion)}</small></span><span class="kc">${r0(f.k * e.q)}<small>${r0(f.p * e.q)} g P</small></span></button></li>`; }).join('')}</ul>` : ''}
+      <div class="btn-row">
+        <button class="btn sm" data-act="food-add" data-slot="${slot}">${icon('plus')} Add food</button>
+        <label class="btn sm">${icon('cam')} Photo<input type="file" accept="image/*" hidden data-in="meal-photo" data-slot="${slot}"></label>
+        ${!list.length && pm ? `<button class="btn sm" data-act="log-plan" data-slot="${slot}" data-m="${pm.id}">📋 ${esc(pm.name)}</button>` : ''}
+        ${!list.length && yest?.[slot]?.length ? `<button class="btn sm" data-act="food-copy" data-slot="${slot}">↺ Same as yesterday</button>` : ''}
+        ${list.length > 1 ? `<button class="btn sm" data-act="meal-save" data-slot="${slot}">★ Save meal</button>` : ''}
+      </div></section>`;
+  }).join('')}
+  <p class="muted small pad">Numbers are estimates — being roughly right every day beats being perfect some days. Your weekly weight trend tells you if it's working.</p>`;
+}
+
+function vMealPlan(T) {
+  const plan = weekPlan();
+  const dow = (new Date().getDay() + 6) % 7;
+  const names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  return `
+  <section class="card">
+    <p class="muted small">Target ${T.kcal} kcal · ${T.protein} g protein. Each day below lands close to that. Tap any meal to swap it. Meal 3 is your post-gym meal — it has the most carbs to refuel.</p>
+    <button class="btn sm" data-act="grocery">🛒 Grocery list for the week</button>
+  </section>
+  ${plan.days.map((day, i) => {
+    let tk = 0, tp = 0;
+    const rows = MEAL_SLOTS.map(([slot, title, emo]) => {
+      const m = MEALS[slot][day[slot]];
+      const t = itemTotals(m.items, mealLookup);
+      tk += t.k; tp += t.p;
+      return `<li><button class="link" data-act="plan-swap" data-d="${i}" data-slot="${slot}"><span>${emo} <b>${esc(m.name)}</b><small>${m.items.map(([id, q]) => `${qtyTxt(q)} ${esc(FOOD[id].name.toLowerCase())}`).join(', ')}</small></span><span class="kc">${r0(t.k)}<small>${r0(t.p)} g P</small></span></button></li>`;
+    }).join('');
+    return `<section class="card ${i === dow ? 'is-next' : ''}"><div class="split"><h3>${names[i]}${i === dow ? ' · today' : ''}</h3><span class="muted small">${r0(tk)} kcal · ${r0(tp)} g P</span></div><ul class="food-list">${rows}</ul>
+      ${i === dow ? `<button class="btn sm primary" data-act="plan-log-day" data-d="${i}">Log today's plan</button>` : ''}</section>`;
+  }).join('')}`;
+}
+
+function grocerySheet() {
+  const plan = weekPlan();
+  const tot = {};
+  for (const day of plan.days) for (const [slot] of MEAL_SLOTS) for (const [id, q] of MEALS[slot][day[slot]].items) tot[id] = (tot[id] || 0) + q;
+  const rows = Object.entries(tot).sort((a, z) => FOOD[a[0]].cat.localeCompare(FOOD[z[0]].cat)).map(([id, q]) => {
+    const f = FOOD[id];
+    const grams = f.g ? ` <span class="muted">(≈ ${q * f.g >= 1000 ? (Math.round((q * f.g) / 100) / 10) + ' kg' : Math.round(q * f.g) + ' g'} cooked)</span>` : '';
+    const unit = f.portion.replace(/^1 /, '');
+    return `<li><label class="chk"><input type="checkbox"><span><b>${esc(f.name)}</b> — ${Math.round(q * 4) / 4} × ${esc(unit)}${grams}</span></label></li>`;
+  }).join('');
+  openSheet(`<h2>🛒 Grocery list</h2><p class="muted">Everything for this week's plan. Raw meat weighs about ⅓ more than cooked.</p><ul class="groc">${rows}</ul>`);
+}
+
+function addFoodSheet(slot) {
+  ui.addSlot = slot;
+  ui.foodQ = '';
+  ui.foodCat = ui.foodCat || 'Recent';
+  openSheet(`<h2>Add to ${esc(MEAL_SLOTS.find((x) => x[0] === slot)[1])}</h2>
+    <input class="search" type="search" placeholder="Search: injera, chicken, eggs…" data-in="food-q">
+    <div class="row-scroll chips">${['Recent', 'My meals', ...FOOD_CATS, 'My foods'].map((c) => `<button class="chip ${ui.foodCat === c ? 'on' : ''}" data-act="food-cat" data-c="${c}">${c}</button>`).join('')}</div>
+    <div id="food-results" class="list">${foodResults()}</div>
+    <div class="btn-row"><button class="btn sm" data-act="quick-add">⚡ Quick add calories</button><button class="btn sm" data-act="food-new">${icon('plus')} Create a food</button></div>`);
+}
+
+function recentFoods() {
+  const seen = new Map();
+  const days = Object.keys(S.food || {}).sort().reverse().slice(0, 14);
+  for (const d of days) for (const [slot] of MEAL_SLOTS) for (const e of S.food[d][slot] || []) if (e.fid && !seen.has(e.fid)) seen.set(e.fid, e.q);
+  return [...seen.keys()].map(foodOf).filter(Boolean);
+}
+
+function foodResults() {
+  const q = (ui.foodQ || '').trim().toLowerCase();
+  const all = [...FOODS, ...Object.values(S.customFoods || {})];
+  if (!q && ui.foodCat === 'My meals') {
+    const ms = S.savedMeals || [];
+    return ms.length ? ms.map((m) => { const t = itemTotals(m.items, mealLookup); return `<button class="lib-row" data-act="meal-use" data-id="${m.id}"><span><b>★ ${esc(m.name)}</b><small>${m.items.length} foods · ${r0(t.k)} kcal · ${r0(t.p)} g P</small></span></button>`; }).join('')
+      : '<p class="muted small pad">No saved meals yet. Log a meal, then tap ★ Save meal to reuse it with one tap.</p>';
+  }
+  let list;
+  if (q) list = all.filter((f) => (f.name + ' ' + f.cat).toLowerCase().includes(q));
+  else if (ui.foodCat === 'Recent') { list = recentFoods(); if (!list.length) list = FOODS.filter((f) => ['injera', 'egg', 'chicken-breast', 'rice', 'potato', 'shiro', 'tibs', 'cheddar', 'ayib', 'misir'].includes(f.id)); }
+  else if (ui.foodCat === 'My foods') list = Object.values(S.customFoods || {});
+  else list = all.filter((f) => f.cat === ui.foodCat);
+  if (!list.length) return '<p class="muted small pad">Nothing here yet. Use “Create a food” for anything missing.</p>';
+  return list.map((f) => `<button class="lib-row" data-act="food-pick" data-id="${f.id}"><span><b>${esc(f.name)}</b><small>${esc(f.portion)} · ${f.k} kcal · ${f.p} g P</small></span></button>`).join('');
+}
+
+function qtySheet({ food, q = 1, title, onSave, onDelete }) {
+  ui.q = q;
+  ui.qFood = food;
+  ui.qSave = onSave;
+  ui.qDel = onDelete;
+  openSheet(`<h2>${esc(food.name)}</h2>
+    <p class="muted">1 portion = ${esc(food.portion)}${food.hint ? ` · ${esc(food.hint)}` : ''}</p>
+    <div class="stepper"><button class="btn" data-act="q-step" data-d="-0.5" aria-label="Less">−</button><b id="q-val">${qtyTxt(q)}</b><button class="btn" data-act="q-step" data-d="0.5" aria-label="More">+</button></div>
+    <div class="row-wrap center-row">${[0.5, 1, 1.5, 2, 3].map((v) => `<button class="chip" data-act="q-set" data-v="${v}">${qtyTxt(v)}</button>`).join('')}</div>
+    <div class="stats" id="q-tot">${qtyStats()}</div>
+    <button class="btn primary big" data-act="q-save">${title || 'Add'}</button>
+    ${onDelete ? '<button class="btn ghost danger" data-act="q-del">Remove</button>' : ''}`);
+}
+function qtyStats() {
+  const f = ui.qFood, q = ui.q;
+  return `<div><b>${r0(f.k * q)}</b><small>kcal</small></div><div><b>${r0(f.p * q)} g</b><small>protein</small></div><div><b>${r0(f.c * q)}/${r0(f.f * q)}</b><small>carbs/fat g</small></div>`;
+}
+
+function quickAddSheet() {
+  openSheet(`<h2>Quick add</h2><p class="muted">For restaurant meals or when you already know the numbers.</p>
+    <form id="qa" class="form"><label class="field">What was it?<input name="name" placeholder="e.g. Dinner at a friend's" required></label>
+    <div class="grid2"><label class="field">Calories<input name="k" type="number" inputmode="numeric" required></label><label class="field">Protein g (optional)<input name="p" type="number" inputmode="numeric"></label></div>
+    <button class="btn primary big">Add</button></form>`, (sh) => {
+    $('#qa', sh).addEventListener('submit', (ev) => {
+      ev.preventDefault();
+      const f = ev.target;
+      foodDay()[ui.addSlot].push({ id: uid(), q: 1, x: { name: f.name.value.trim(), portion: 'quick add', k: +f.k.value || 0, p: +f.p.value || 0, c: 0, f: 0 } });
+      commit(); closeSheet(); render(); toast('Added');
+    });
+  });
+}
+
+function newFoodSheet() {
+  openSheet(`<h2>Create a food</h2><p class="muted">Check the label, or give your best guess. It's saved for next time.</p>
+    <form id="nf" class="form"><label class="field">Name<input name="name" required placeholder="e.g. Mom's shiro"></label>
+    <label class="field">1 portion is…<input name="portion" required placeholder="e.g. 1 cup, 1 piece, 100 g"></label>
+    <div class="grid2"><label class="field">Calories<input name="k" type="number" inputmode="decimal" required></label><label class="field">Protein g<input name="p" type="number" inputmode="decimal" value="0"></label>
+    <label class="field">Carbs g<input name="c" type="number" inputmode="decimal" value="0"></label><label class="field">Fat g<input name="f" type="number" inputmode="decimal" value="0"></label></div>
+    <button class="btn primary big">Save & add</button></form>`, (sh) => {
+    $('#nf', sh).addEventListener('submit', (ev) => {
+      ev.preventDefault();
+      const f = ev.target;
+      const id = 'cf-' + uid();
+      S.customFoods = S.customFoods || {};
+      S.customFoods[id] = { id, name: f.name.value.trim(), cat: 'My foods', portion: f.portion.value.trim(), k: +f.k.value || 0, p: +f.p.value || 0, c: +f.c.value || 0, f: +f.f.value || 0, g: 0 };
+      foodDay()[ui.addSlot].push({ id: uid(), fid: id, q: 1 });
+      commit(); closeSheet(); render(); toast('Saved & added');
+    });
+  });
+}
+
+async function loadMealPhotos() {
+  const imgs = document.querySelectorAll('img[data-photo-id]');
+  if (!imgs.length) return;
+  for (const img of imgs) {
+    try { const p = await getPhoto(img.dataset.photoId); if (p) img.src = photoUrl(p); } catch {}
+  }
+}
+
+async function aiEstimate(slot) {
+  const pid = foodDay().photos?.[slot];
+  if (!pid) return;
+  if (!getKey()) {
+    openSheet(`<h2>✨ Photo calorie estimates</h2>
+      <p>This uses Claude (AI) to look at your plate photo and estimate each food. It needs your own Anthropic API key — a one-time setup. Each photo costs about 1–2 US cents.</p>
+      <ol class="cues"><li>On a computer or phone, go to <b>console.anthropic.com</b> and sign up.</li><li>Add a little credit under <b>Billing</b> (e.g. $5 lasts for hundreds of photos).</li><li>Go to <b>API Keys → Create key</b> and copy it.</li><li>Paste it in <b>Settings → Photo calorie estimates</b> in this app.</li></ol>
+      <p class="muted small">The key is stored only on this phone. Until then, add the foods by hand — the photo stays as a reminder.</p>
+      <button class="btn primary big" data-act="go-settings">Open Settings</button>`);
+    return;
+  }
+  const p = await getPhoto(pid);
+  openSheet(`<div class="done-sheet"><div class="big-emoji spin">✨</div><h2>Looking at your plate…</h2><p class="muted">This takes about 10–20 seconds.</p></div>`);
+  try {
+    const out = await estimatePlate(p.blob);
+    ui.aiItems = out.items.map((it) => ({ ...it, on: true }));
+    ui.aiNote = out.note;
+    ui.aiSlot = slot;
+    aiResultSheet();
+  } catch (e) {
+    openSheet(`<div class="done-sheet"><div class="big-emoji">😕</div><h2>Couldn't estimate</h2><p>${esc(e.message)}</p><button class="btn big" data-act="sheet-close">OK</button></div>`);
+  }
+}
+function aiResultSheet() {
+  const on = ui.aiItems.filter((x) => x.on);
+  const tk = on.reduce((a, x) => a + x.kcal, 0), tp = on.reduce((a, x) => a + x.protein_g, 0);
+  openSheet(`<h2>✨ What I see</h2><p class="muted small">${esc(ui.aiNote || '')}</p>
+    <ul class="food-list">${ui.aiItems.map((it, i) => `<li><label class="chk"><input type="checkbox" data-in="ai-on" data-i="${i}" ${it.on ? 'checked' : ''}><span><b>${esc(it.name)}</b><small>${esc(it.portion)}</small></span><span class="kc">${r0(it.kcal)}<small>${r0(it.protein_g)} g P</small></span></label></li>`).join('')}</ul>
+    <div class="stats"><div><b>${r0(tk)}</b><small>kcal</small></div><div><b>${r0(tp)} g</b><small>protein</small></div><div><b>${on.length}</b><small>foods</small></div></div>
+    <p class="muted small">AI estimates can be off by 20–30%, mostly from hidden oil. Untick anything wrong, then fix portions later by tapping the food.</p>
+    <button class="btn primary big" data-act="ai-add">Add ${on.length} to meal</button>`);
+}
+
 // ───────────────────────── SETTINGS ─────────────────────────
 function vSettings() {
   const p = S.profile;
@@ -300,6 +547,12 @@ function vSettings() {
     <h3>Workout</h3>
     <label class="toggle"><span>Beep when rest is over</span><input type="checkbox" data-in="setting" data-f="sound" ${S.settings.sound ? 'checked' : ''}></label>
     <p class="muted small">Each exercise remembers its own unit (kg or lb) and weight jump — change them on the exercise's page or by tapping the KG/LB header during a workout.</p>
+  </section>
+  <section class="card form">
+    <h3>Photo calorie estimates (optional)</h3>
+    <p class="muted small">Snap your plate and Claude estimates each food. Needs your own Anthropic API key from console.anthropic.com (about 1–2 cents per photo). The key stays on this phone only — it's not in backups or on GitHub.</p>
+    <label class="field">API key<input type="password" autocomplete="off" data-in="ai-key" placeholder="sk-ant-…" value="${getKey() ? '••••••••••••' : ''}"></label>
+    ${getKey() ? '<button class="btn sm danger" data-act="ai-key-del">Remove key</button>' : ''}
   </section>
   <section class="card form">
     <h3>Backup</h3>
@@ -701,6 +954,72 @@ function woDetail(id) {
 
 // ───────────────────────── actions ─────────────────────────
 const A = {
+  'food-tab': (el) => { ui.foodTab = el.dataset.t; render(true); },
+  'food-day': (el) => { ui.foodDay = shiftDay(ui.foodDay, +el.dataset.n); render(); },
+  'food-add': (el) => addFoodSheet(el.dataset.slot),
+  'food-cat': (el) => { ui.foodCat = el.dataset.c; ui.foodQ = ''; const s = $('.sheet .search'); if (s) s.value = ''; document.querySelectorAll('.sheet .chips .chip').forEach((c) => c.classList.toggle('on', c.dataset.c === ui.foodCat)); $('#food-results').innerHTML = foodResults(); },
+  'food-pick': (el) => {
+    const f = foodOf(el.dataset.id), slot = ui.addSlot;
+    qtySheet({ food: f, q: 1, title: 'Add', onSave: (q) => { foodDay()[slot].push({ id: uid(), fid: f.id, q }); toast(`Added ${f.name}`); } });
+  },
+  'fe-edit': (el) => {
+    const list = foodDay()[el.dataset.slot], i = +el.dataset.i, e = list[i];
+    qtySheet({ food: entryFood(e), q: e.q, title: 'Save', onSave: (q) => { e.q = q; }, onDelete: () => list.splice(i, 1) });
+  },
+  'q-step': (el) => { ui.q = Math.max(0.25, Math.round((ui.q + +el.dataset.d) * 4) / 4); $('#q-val').textContent = qtyTxt(ui.q); $('#q-tot').innerHTML = qtyStats(); },
+  'q-set': (el) => { ui.q = +el.dataset.v; $('#q-val').textContent = qtyTxt(ui.q); $('#q-tot').innerHTML = qtyStats(); },
+  'q-save': () => { ui.qSave?.(ui.q); commit(); closeSheet(); render(); },
+  'q-del': () => { ui.qDel?.(); commit(); closeSheet(); render(); },
+  'quick-add': quickAddSheet,
+  'food-new': newFoodSheet,
+  'food-copy': (el) => {
+    const slot = el.dataset.slot, y = peekDay(shiftDay(ui.foodDay, -1));
+    foodDay()[slot] = (y?.[slot] || []).map((e) => ({ ...e, id: uid() }));
+    commit(); render(); toast('Copied from yesterday');
+  },
+  'log-plan': (el) => {
+    const slot = el.dataset.slot, m = MEALS[slot].find((x) => x.id === el.dataset.m);
+    foodDay()[slot].push(...m.items.map(([fid, q]) => ({ id: uid(), fid, q })));
+    commit(); render(); toast(`Logged ${m.name}`);
+  },
+  'plan-log-day': (el) => {
+    const day = weekPlan().days[+el.dataset.d];
+    ui.foodDay = dayKey(Date.now());
+    const fd = foodDay();
+    for (const [slot] of MEAL_SLOTS) if (!fd[slot].length) fd[slot].push(...MEALS[slot][day[slot]].items.map(([fid, q]) => ({ id: uid(), fid, q })));
+    ui.foodTab = 'log'; commit(); render(true); toast('Today\'s plan logged — adjust anything you changed');
+  },
+  'plan-swap': (el) => { const d = weekPlan().days[+el.dataset.d], s = el.dataset.slot; d[s] = (d[s] + 1) % MEALS[s].length; commit(); render(); },
+  grocery: grocerySheet,
+  'meal-save': (el) => {
+    const slot = el.dataset.slot, list = foodDay()[slot];
+    const name = prompt('Name this meal (e.g. "My usual breakfast")');
+    if (!name) return;
+    S.savedMeals = S.savedMeals || [];
+    const items = list.filter((e) => e.fid).map((e) => [e.fid, e.q]);
+    if (!items.length) return toast('Only foods from the list can be saved');
+    S.savedMeals.unshift({ id: uid(), name: name.trim(), items });
+    commit(); toast('Meal saved ★');
+  },
+  'meal-use': (el) => {
+    const m = (S.savedMeals || []).find((x) => x.id === el.dataset.id);
+    if (!m) return;
+    foodDay()[ui.addSlot].push(...m.items.map(([fid, q]) => ({ id: uid(), fid, q })));
+    commit(); closeSheet(); render(); toast(`Added ${m.name}`);
+  },
+  'meal-photo-del': async (el) => {
+    const d = foodDay(), pid = d.photos?.[el.dataset.slot];
+    if (pid) { try { await delPhoto(pid); } catch {} delete d.photos[el.dataset.slot]; }
+    commit(); render();
+  },
+  'ai-est': (el) => aiEstimate(el.dataset.slot),
+  'ai-add': () => {
+    const list = foodDay()[ui.aiSlot];
+    for (const it of ui.aiItems.filter((x) => x.on)) list.push({ id: uid(), q: 1, x: { name: it.name, portion: it.portion + ' (AI estimate)', k: r0(it.kcal), p: r0(it.protein_g), c: r0(it.carbs_g), f: r0(it.fat_g) } });
+    commit(); closeSheet(); render(); toast('Added to your meal');
+  },
+  'ai-key-del': () => { setKey(''); render(); toast('Key removed'); },
+  'go-settings': () => { closeSheet(); go('settings'); },
   nav: (el) => go(el.dataset.to),
   noop: () => toast('Finish your current workout first'),
   start: (el) => startWorkout(+el.dataset.day),
@@ -881,6 +1200,24 @@ document.addEventListener('click', (ev) => {
 
 // ───────────────────────── inputs ─────────────────────────
 const IN = {
+  'food-q': (el) => { ui.foodQ = el.value; $('#food-results').innerHTML = foodResults(); },
+  'ai-on': (el) => { ui.aiItems[+el.dataset.i].on = el.checked; aiResultSheet(); },
+  'ai-key': (el) => { const v = el.value.trim(); if (v && !v.startsWith('•')) { setKey(v); toast('Key saved on this phone'); render(); } },
+  'meal-photo': async (el) => {
+    const file = el.files?.[0];
+    if (!file) return;
+    try {
+      const blob = await resizeImage(file, 1280);
+      const id = uid();
+      await putPhoto({ id, kind: 'meal', day: ui.foodDay, date: Date.now(), blob });
+      const d = foodDay();
+      d.photos = d.photos || {};
+      if (d.photos[el.dataset.slot]) { try { await delPhoto(d.photos[el.dataset.slot]); } catch {} }
+      d.photos[el.dataset.slot] = id;
+      commit(true); render();
+      if (getKey()) aiEstimate(el.dataset.slot); else toast('Photo saved');
+    } catch (e) { alert('Could not save photo: ' + e.message); }
+  },
   set: (el) => { S.active.entries[+el.dataset.i].sets[+el.dataset.j][el.dataset.f] = el.value; commit(); },
   'ex-note': (el) => { S.exNotes[el.dataset.id] = el.value; commit(); },
   'lib-q': (el) => { ui.libQ = el.value; $('#lib-list').innerHTML = libList(); },
@@ -942,6 +1279,7 @@ const onIn = (ev) => {
   // file inputs and selects only on change; text on input
   if ((el.type === 'file' || el.tagName === 'SELECT' || el.type === 'checkbox') && ev.type !== 'change') return;
   if (el.dataset.in === 'it' && ev.type === 'change') { fn(el); render(); return; }
+  if (el.dataset.in === 'ai-key') { if (ev.type === 'change') fn(el); return; }
   if (el.type !== 'file' && el.tagName !== 'SELECT' && el.type !== 'checkbox' && ev.type === 'change') return;
   fn(el);
 };

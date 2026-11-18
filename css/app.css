@@ -14,6 +14,7 @@
   --fig: #eef0e8;
   --prop: #6c7264;
   --handle: #ff9f43;
+  --prot: #5ec8ff;
   --r: 18px;
   --safe-b: env(safe-area-inset-bottom, 0px);
   --safe-t: env(safe-area-inset-top, 0px);
@@ -277,3 +278,34 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
 .undo-card { display: flex; align-items: center; justify-content: space-between; gap: 10px; border-color: var(--down); }
 .undo-card small { display: block; color: var(--muted); }
 .warn { color: var(--down); }
+
+/* food */
+.seg { display: grid; grid-template-columns: 1fr 1fr; background: var(--card2); border-radius: 12px; padding: 3px; margin: 0 0 12px; }
+.seg button { min-height: 38px; border-radius: 10px; font-weight: 700; font-size: 15px; color: var(--muted); }
+.seg button.on { background: var(--card); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,.25); }
+.daynav { display: flex; gap: 4px; }
+.daynav .flip .ic { transform: scaleX(-1); }
+.daynav button[disabled] { opacity: .3; }
+.big-num { font-size: 30px; font-variant-numeric: tabular-nums; }
+.accent { color: var(--accent); }
+.bar.thin2 { height: 6px; margin: 6px 0 0; }
+.food-list { list-style: none; margin: 8px 0 0; padding: 0; }
+.food-list li { border-top: 1px solid var(--line); padding: 8px 0; }
+.food-list .link { justify-content: space-between; }
+.kc { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; flex: none; }
+.kc small { display: block; color: var(--muted); font-weight: 500; font-size: 12px; }
+.meal-photo img { width: 100%; max-height: 260px; object-fit: cover; border-radius: 12px; margin-top: 10px; display: block; background: var(--card2); min-height: 80px; }
+.food-card { width: 100%; text-align: left; display: block; }
+.stepper { display: flex; align-items: center; justify-content: center; gap: 24px; margin: 16px 0 8px; }
+.stepper .btn { width: 56px; height: 56px; font-size: 26px; border-radius: 50%; }
+.stepper b { font-size: 40px; min-width: 70px; text-align: center; }
+.center-row { justify-content: center; }
+.chk { display: flex; align-items: center; gap: 10px; width: 100%; }
+.chk input { width: 22px; height: 22px; accent-color: var(--accent); flex: none; }
+.chk > span:first-of-type { flex: 1; }
+.chk small { display: block; color: var(--muted); }
+.groc { list-style: none; padding: 0; margin: 8px 0; }
+.groc li { padding: 10px 0; border-top: 1px solid var(--line); font-size: 15px; }
+.groc input:checked + span { text-decoration: line-through; opacity: .5; }
+.spin { animation: spin 1.6s linear infinite; display: inline-block; }
+@keyframes spin { to { transform: rotate(360deg); } }

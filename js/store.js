@@ -15,6 +15,10 @@ export function defaults() {
     exNotes: {}, // seat height, pin position…
     workouts: [],
     body: [], // {id, date, kg, waist}
+    food: {}, // 'YYYY-MM-DD' → {breakfast, lunch, dinner, snack, photos}
+    customFoods: {},
+    savedMeals: [],
+    mealPlan: null,
     active: null,
   };
 }
@@ -68,6 +72,14 @@ async function tx(mode, fn) {
 }
 export const putPhoto = (p) => tx('readwrite', (s) => s.put(p));
 export const delPhoto = (id) => tx('readwrite', (s) => s.delete(id));
+export async function getPhoto(id) {
+  const d = await db();
+  return new Promise((res, rej) => {
+    const r = d.transaction('photos').objectStore('photos').get(id);
+    r.onsuccess = () => res(r.result || null);
+    r.onerror = () => rej(r.error);
+  });
+}
 export async function allPhotos() {
   const d = await db();
   return new Promise((res, rej) => {
