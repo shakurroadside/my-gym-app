@@ -4,6 +4,8 @@ import { WHY, SCHEDULE, targets, defaultProgram } from './program.js';
 import { load, save, defaults, requestPersist, putPhoto, delPhoto, allPhotos, resizeImage, exportAll, importAll } from './store.js';
 import { suggest, entryStats, workingSets, uid, dayKey, startOfWeek, fmtDate, fmtDur, fmtClock, fmtW, esc, toKg, e1rm } from './logic.js';
 import { lineChart } from './charts.js';
+import { bodyMap, MUSCLE_NAMES } from './bodymap.js';
+import { HOWTO, breathing, tempo } from './howto.js';
 
 let S = load();
 let saveT = 0;
@@ -115,6 +117,7 @@ function vToday() {
   return `
   <header class="top"><div><p class="eyebrow">${fmtDate(Date.now(), { weekday: 'long', day: 'numeric', month: 'long' })}</p><h1>${hello}${S.profile.name ? ', ' + esc(S.profile.name) : ''}</h1></div></header>
   ${isIOS && !standalone ? `<div class="card hint">📲 <b>Install on your iPhone:</b> tap the <b>Share</b> button in Safari → <b>Add to Home Screen</b>. It then opens like an app and works offline.</div>` : ''}
+  ${resumable() ? `<div class="card undo-card"><div><b>Finished ${esc(resumable().dayName.split('·')[0].trim())} by mistake?</b><small>Ended ${fmtDur(Date.now() - resumable().end)} ago</small></div><button class="btn sm" data-act="wo-resume" data-id="${resumable().id}">↩︎ Resume</button></div>` : ''}
   ${S.active ? `<button class="card resume" data-act="nav" data-to="workout"><span class="pulse"></span><div><b>Workout in progress</b><small>${esc(S.active.dayName)} · started ${fmtDur(Date.now() - S.active.start)} ago</small></div><span class="chev">Resume ›</span></button>` : ''}
 
   ${day ? `<section class="card next">
@@ -429,6 +432,9 @@ function finishWorkout() {
     if (before > 0 && now > before + 0.01) prs.push(ex.name);
   }
   const w = { id: A.id, dayId: A.dayId, dayName: A.dayName, start: A.start, end: Date.now(), entries, cardio };
+  // keep a full copy so a mistaken "Finish" can be undone (only the latest workout keeps one)
+  for (const o of S.workouts) delete o.snap;
+  w.snap = JSON.parse(JSON.stringify({ ...A, prevNext: S.nextDay }));
   S.workouts.push(w);
   if (A.dayIdx != null) S.nextDay = (A.dayIdx + 1) % S.program.days.length;
   S.active = null;
@@ -444,8 +450,30 @@ function finishWorkout() {
     ${prs.length ? `<div class="card pr"><b>🏆 New records</b><ul>${prs.map((n) => `<li>${esc(n)}</li>`).join('')}</ul></div>` : ''}
     ${cardio.length ? `<p class="muted">🏃 ${cardio.reduce((a, c) => a + c.min, 0)} min on the treadmill</p>` : ''}
     <p class="muted">Next up: <b>${esc(S.program.days[S.nextDay % S.program.days.length]?.name || '')}</b></p>
-    <button class="btn primary big" data-act="sheet-close">Nice</button></div>`);
+    <button class="btn primary big" data-act="sheet-close">Nice</button>
+    <button class="btn ghost" data-act="wo-resume" data-id="${w.id}">↩︎ Oops, I wasn't done — resume workout</button></div>`);
 }
+
+function resumeWorkout(id) {
+  if (S.active) return toast('Finish or discard your current workout first');
+  const w = S.workouts.find((x) => x.id === id);
+  if (!w?.snap) return toast('This workout can\'t be resumed');
+  const A = w.snap;
+  A.start += Date.now() - w.end; // don't count the time it was closed
+  if (A.prevNext != null) S.nextDay = A.prevNext;
+  delete A.prevNext;
+  S.workouts = S.workouts.filter((x) => x.id !== id);
+  S.active = A;
+  commit(true);
+  closeSheet();
+  wake(true);
+  go('workout');
+  toast('Workout resumed 💪');
+}
+const resumable = () => {
+  const w = S.workouts[S.workouts.length - 1];
+  return !S.active && w?.snap && Date.now() - w.end < 12 * 3600e3 ? w : null;
+};
 
 // ───────────────────────── timer, sound, wake lock ─────────────────────────
 let T = null;
@@ -532,6 +560,9 @@ function closeSheet() {
   setTimeout(() => { if (!sh.classList.contains('open')) { sh.hidden = true; sh.innerHTML = ''; } }, 220);
 }
 
+const dgState = { paused: false, speed: 1 };
+const howOf = (ex) => HOWTO[ex.id] || HOWTO[ex.like] || {};
+
 async function exDetail(id) {
   const ex = getEx(id);
   if (!ex) return;
@@ -544,14 +575,27 @@ async function exDetail(id) {
   }
   let machinePhoto = null;
   try { machinePhoto = (await allPhotos()).filter((p) => p.kind === 'machine' && p.exId === id).sort((a, z) => z.date - a.date)[0]; } catch {}
-  const cues = ex.cues?.length ? ex.cues : [];
+  const H = howOf(ex);
+  const d = diagramOf(ex);
+  const cues = ex.cues?.length ? ex.cues : LIB[ex.like]?.cues || [];
+  const setup = H.setup || [];
+  const prim = H.p || [], sec = H.s || [];
+  const avoid = ex.avoid || LIB[ex.like]?.avoid;
+  const tp = tempo(ex);
+  dgState.paused = false; dgState.speed = 1;
   openSheet(`
     <div class="dg-big"><svg viewBox="0 0 200 160" class="dg" id="dg-anim"></svg></div>
+    <div class="dg-ctrl"><button class="chip" data-act="dg-pause">❚❚ Pause</button><button class="chip" data-act="dg-slow">🐢 Slow motion</button></div>
+    <div class="dg-steps"><figure>${svg(d, 0)}<figcaption>1 · Start position</figcaption></figure><figure>${svg(d, 1)}<figcaption>2 · End position</figcaption></figure></div>
     <h2>${esc(ex.name)}</h2>
     <div class="row-wrap"><span class="chip on">${esc(ex.muscle)}</span><span class="chip">${esc(ex.equip)}</span>${ex.perSide ? '<span class="chip">each side</span>' : ''}</div>
-    ${ex.target ? `<p class="muted">Works: ${esc(ex.target)}</p>` : ''}
-    ${cues.length ? `<h4>How to do it</h4><ol class="cues">${cues.map((c) => `<li>${esc(c)}</li>`).join('')}</ol>` : ''}
-    ${ex.avoid ? `<p class="avoid">⚠️ Avoid: ${esc(ex.avoid)}</p>` : ''}
+    ${prim.length ? `<h4>Muscles worked</h4><div class="bm-wrap">${bodyMap(prim, sec)}
+      <div class="bm-legend"><p><span class="lg p"></span><b>Main:</b> ${prim.map((k) => MUSCLE_NAMES[k]).join(', ')}</p>${sec.length ? `<p><span class="lg s"></span><b>Helping:</b> ${sec.map((k) => MUSCLE_NAMES[k]).join(', ')}</p>` : ''}</div></div>`
+      : ex.target ? `<p class="muted">Works: ${esc(ex.target)}</p>` : ''}
+    ${setup.length ? `<h4>Step 1 · Setup & stance</h4><ol class="cues">${setup.map((c) => `<li>${esc(c)}</li>`).join('')}</ol>` : ''}
+    ${cues.length ? `<h4>Step 2 · The movement</h4><ol class="cues">${cues.map((c) => `<li>${esc(c)}</li>`).join('')}</ol>` : ''}
+    <div class="tips"><p>🫁 <span>${breathing(ex)}</span></p>${tp ? `<p>⏱ <span>${tp}</span></p>` : ''}</div>
+    ${avoid ? `<p class="avoid">⚠️ Avoid: ${esc(avoid)}</p>` : ''}
     <h4>Your machine</h4>
     ${machinePhoto ? `<img class="machine-photo" src="${photoUrl(machinePhoto)}" alt="">` : ''}
     <label class="btn sm">${icon('cam')} ${machinePhoto ? 'Replace photo' : 'Add photo of your machine'}<input type="file" accept="image/*" hidden data-in="photo-add" data-kind="machine" data-id="${id}"></label>
@@ -562,7 +606,7 @@ async function exDetail(id) {
     ${pts.length ? `<h4>${ex.type === 'time' ? 'Best hold (s)' : 'Strength trend (est. 1-rep max, kg)'}</h4>${lineChart(pts, {})}` : ''}
     ${hist.length ? `<h4>Recent sessions</h4><ul class="hist small">${hist.slice(0, 6).map((h) => `<li><span>${fmtDate(h.date)}</span><span>${workingSets(h).map((s) => (ex.type === 'time' ? `${s.secs}s` : `${+s.w ? fmtW(+s.w) + h.unit + '×' : ''}${s.reps}`)).join(' · ')}</span></li>`).join('')}</ul>` : ''}
     ${ex.custom ? `<button class="btn ghost danger" data-act="custom-del" data-id="${id}">Delete this exercise</button>` : ''}
-  `, (sh) => { stopAnim = animate($('#dg-anim', sh), diagramOf(ex)); });
+  `, (sh) => { stopAnim = animate($('#dg-anim', sh), d, { speed: () => dgState.speed, paused: () => dgState.paused }); });
 }
 
 function pickExercise(title, onPick, muscle = null) {
@@ -651,6 +695,7 @@ function woDetail(id) {
       const ex = getEx(e.exId);
       return `<li><span><b>${esc(ex?.name || e.exId)}</b><small>${e.sets.map((s) => (ex?.type === 'time' ? `${s.secs}s` : `${s.w ? fmtW(s.w) + e.unit + '×' : ''}${s.reps}`) + (s.warm ? ' (W)' : '')).join(' · ')}</small></span></li>`;
     }).join('')}</ul>
+    ${w.snap && !S.active ? `<button class="btn ghost" data-act="wo-resume" data-id="${w.id}">↩︎ Resume this workout</button>` : ''}
     <button class="btn ghost danger" data-act="wo-del" data-id="${w.id}">Delete this workout</button>`);
 }
 
@@ -778,9 +823,17 @@ const A = {
   'cardio-done': (el) => { const c = S.active[el.dataset.k]; c.done = !c.done; commit(); render(); },
   finish: () => {
     const open = S.active.entries.reduce((a, e) => a + e.sets.filter((s) => !s.done).length, 0);
-    if (open && !confirm(`${open} set${open > 1 ? 's are' : ' is'} not ticked. Finish anyway? (Unticked sets are not saved.)`)) return;
-    finishWorkout();
+    const done = S.active.entries.reduce((a, e) => a + e.sets.filter((s) => s.done).length, 0);
+    openSheet(`<div class="done-sheet"><div class="big-emoji">🏁</div><h2>Finish workout?</h2>
+      <p class="muted">${done} set${done === 1 ? '' : 's'} done${open ? ` · <b class="warn">${open} not ticked</b> (they won't be saved)` : ''}</p>
+      <button class="btn big" data-act="sheet-close">Keep training</button>
+      <button class="btn primary big" data-act="finish-yes">Yes, finish & save</button>
+      <p class="muted small">Pressed by mistake later? You can still resume it from the Today screen.</p></div>`);
   },
+  'finish-yes': () => { closeSheet(); finishWorkout(); },
+  'wo-resume': (el) => resumeWorkout(el.dataset.id),
+  'dg-pause': (el) => { dgState.paused = !dgState.paused; el.textContent = dgState.paused ? '▶ Play' : '❚❚ Pause'; },
+  'dg-slow': (el) => { dgState.speed = dgState.speed === 1 ? 0.4 : 1; el.textContent = dgState.speed === 1 ? '🐢 Slow motion' : '⚡ Normal speed'; el.classList.toggle('on', dgState.speed !== 1); },
   discard: () => { if (confirm('Discard this workout? Nothing will be saved.')) { S.active = null; stopTimer(); commit(true); wake(false); go('today'); } },
   't-add': (el) => { if (T) { T.end += +el.dataset.s * 1000; T.total = Math.max(T.total, (T.end - Date.now()) / 1000); tick(); } },
   't-skip': stopTimer,

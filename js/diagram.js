@@ -158,6 +158,7 @@ function drawFigure(j, hl) {
     s += line([j.shL, j.elL, j.haL], 'dg-limb' + H('arm'));
     s += line([j.shR, j.elR, j.haR], 'dg-limb' + H('arm'));
     s += `<circle cx="${f(j.head[0])}" cy="${f(j.head[1])}" r="${L.head}" class="dg-head"/>`;
+    s += `<circle cx="${f(j.haR[0])}" cy="${f(j.haR[1])}" r="3.6" class="dg-hand${H('arm')}"/><circle cx="${f(j.haL[0])}" cy="${f(j.haL[1])}" r="3.6" class="dg-hand${H('arm')}"/>`;
     return s;
   }
   if (j.kn2) s += line([j.hip, j.kn2, j.an2, j.toe2], 'dg-limb dg-far' + H('leg'));
@@ -166,6 +167,7 @@ function drawFigure(j, hl) {
   s += line([j.hip, j.sh], 'dg-body' + H('torso'));
   s += `<circle cx="${f(j.head[0])}" cy="${f(j.head[1])}" r="${L.head}" class="dg-head"/>`;
   s += line([j.sh, j.el, j.ha], 'dg-limb' + H('arm'));
+  s += `<circle cx="${f(j.ha[0])}" cy="${f(j.ha[1])}" r="3.6" class="dg-hand${H('arm')}"/>`;
   return s;
 }
 
@@ -186,14 +188,18 @@ export function svg(d, t = 1, cls = '') {
 }
 
 // Animate: hold A, move to B, hold B, return. Returns a stop function.
-export function animate(el, d, period = 2800) {
+export function animate(el, d, opts = {}) {
   if (!el || !d) return () => {};
   let raf = 0, stopped = false;
-  const t0 = performance.now();
+  const period = opts.period || 2800;
+  let t0 = performance.now();
   const ease = (x) => 0.5 - 0.5 * Math.cos(Math.PI * x);
+  let last = t0, clock = 0;
   const tick = (now) => {
     if (stopped) return;
-    const p = ((now - t0) % period) / period;
+    const dt = now - last; last = now;
+    if (!opts.paused?.()) clock += dt * (opts.speed?.() || 1);
+    const p = (clock % period) / period;
     let t;
     if (p < 0.12) t = 0;
     else if (p < 0.45) t = ease((p - 0.12) / 0.33);

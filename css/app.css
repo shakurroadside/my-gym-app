@@ -135,12 +135,14 @@ button { background: none; border: 0; padding: 0; cursor: pointer; }
 /* diagrams */
 .dg { display: block; width: 100%; height: auto; }
 .dg polyline { fill: none; stroke-linecap: round; stroke-linejoin: round; }
-.dg-limb { stroke: var(--fig); stroke-width: 5; }
-.dg-body { stroke: var(--fig); stroke-width: 7; }
-.dg-far { opacity: .4; }
+.dg-limb { stroke: var(--fig); stroke-width: 7; }
+.dg-body { stroke: var(--fig); stroke-width: 12; }
+.dg-far { opacity: .35; }
+.dg-hand { fill: var(--fig); }
+.dg-hand.dg-hl { fill: var(--accent); }
 .dg-hl { stroke: var(--accent); }
 .dg-head { fill: var(--fig); }
-.dg-floor { stroke: var(--line); stroke-width: 2; }
+.dg-floor { stroke: var(--muted); stroke-width: 2; opacity: .5; }
 .dg-prop { stroke: var(--prop); }
 .dg-pad { stroke: var(--prop); stroke-linecap: round; }
 .dg-frame { fill: none; stroke: var(--prop); stroke-width: 2; }
@@ -151,7 +153,7 @@ button { background: none; border: 0; padding: 0; cursor: pointer; }
 .dg-roller { fill: var(--prop); }
 .dg-cable { stroke: var(--muted); stroke-width: 1.2; stroke-dasharray: 3 2; }
 .dg-bar { stroke: var(--muted); stroke-width: 3; stroke-linecap: round; }
-.thumb { width: 64px; flex: none; background: var(--card2); border-radius: 10px; padding: 2px; }
+.thumb { width: 76px; flex: none; background: var(--card2); border-radius: 10px; padding: 2px; }
 .thumb.sm { width: 52px; }
 .dg-big { background: var(--card2); border-radius: 16px; padding: 8px; margin: 4px 0 12px; }
 .cues { padding-left: 22px; margin: 0; } .cues li { margin: 6px 0; }
@@ -253,3 +255,25 @@ textarea { resize: vertical; }
 .toast.show { transform: translate(-50%, 0); }
 
 input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+/* exercise page */
+.dg-ctrl { display: flex; gap: 8px; justify-content: center; margin: -4px 0 10px; }
+.dg-steps { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.dg-steps figure { margin: 0; background: var(--card2); border-radius: 12px; padding: 4px; }
+.dg-steps figcaption { text-align: center; font-size: 12px; font-weight: 700; color: var(--muted); padding: 2px 0 4px; }
+.bm-wrap { background: var(--card2); border-radius: 14px; padding: 10px; }
+.bodymap { width: 100%; max-width: 360px; display: block; margin: 0 auto; }
+.bm-sil { fill: color-mix(in srgb, var(--fig) 10%, var(--card2)); }
+.bm-o { fill: color-mix(in srgb, var(--fig) 18%, var(--card2)); stroke: var(--card2); stroke-width: .6; }
+.bm-p { fill: var(--accent); stroke: var(--card2); stroke-width: .6; }
+.bm-s { fill: color-mix(in srgb, var(--accent) 45%, var(--card2)); stroke: var(--card2); stroke-width: .6; }
+.bm-cut { stroke: var(--card2); stroke-width: .8; fill: none; }
+.bm-lbl { fill: var(--muted); font: 700 8px -apple-system, sans-serif; letter-spacing: .08em; }
+.bm-legend p { margin: 6px 0 0; font-size: 14px; }
+.lg { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+.lg.p { background: var(--accent); } .lg.s { background: color-mix(in srgb, var(--accent) 45%, var(--card2)); }
+.tips { background: var(--card2); border-radius: 12px; padding: 4px 12px; margin: 14px 0 10px; }
+.tips p { display: flex; gap: 8px; font-size: 14px; }
+.undo-card { display: flex; align-items: center; justify-content: space-between; gap: 10px; border-color: var(--down); }
+.undo-card small { display: block; color: var(--muted); }
+.warn { color: var(--down); }
