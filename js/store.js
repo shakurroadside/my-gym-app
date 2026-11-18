@@ -6,7 +6,7 @@ const KEY = 'mygym.v1';
 export function defaults() {
   return {
     v: 1,
-    profile: { name: '', sex: 'male', age: 32, heightCm: 183, startWeight: 83, goalWeight: 77, startDate: Date.now() },
+    profile: { name: '', sex: 'male', age: 32, heightCm: 175, startWeight: 83, goalWeight: 77, startDate: Date.now() },
     settings: { sound: true, restDefault: 90 },
     program: defaultProgram(),
     nextDay: 0,

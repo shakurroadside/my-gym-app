@@ -291,7 +291,7 @@ function vSettings() {
     ${f('name', 'Name', 'text')}
     <div class="grid2">${f('age', 'Age')}${f('heightCm', 'Height (cm)')}${f('startWeight', 'Start weight (kg)')}${f('goalWeight', 'Goal weight (kg)')}</div>
     <label>Sex<select data-in="profile" data-f="sex"><option value="male" ${p.sex === 'male' ? 'selected' : ''}>Male</option><option value="female" ${p.sex === 'female' ? 'selected' : ''}>Female</option></select></label>
-    <p class="muted small">Used for your calorie & protein targets. 6 ft = 183 cm.</p>
+    <p class="muted small">Used for your calorie & protein targets.</p>
   </section>
   <section class="card form">
     <h3>Workout</h3>

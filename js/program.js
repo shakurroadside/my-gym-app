@@ -1,5 +1,5 @@
 // Your default program + body targets.
-// Built for: male, 32, ~183 cm, 83 kg → 77 kg, <1 year training,
+// Built for: male, 32, 175 cm, 83 kg → 77 kg, <1 year training,
 // 4 days/week, priority = belly/core, then upper body.
 
 const it = (exId, sets, repMin, repMax, rest = 90) => ({ exId, sets, repMin, repMax, rest });
