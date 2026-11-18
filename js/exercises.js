@@ -560,4 +560,7 @@ export const LIBRARY = [
   },
 ];
 
+// Fit4Less: dumbbells run 5–75 lb in 5 lb steps.
+for (const e of LIBRARY) if (e.equip === 'Dumbbell') { e.unit = 'lb'; e.inc = 5; }
+
 export const LIB = Object.fromEntries(LIBRARY.map((e) => [e.id, e]));
