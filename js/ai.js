@@ -101,3 +101,62 @@ export async function estimatePlate(jpegBlob, hint = '') {
   try { out = JSON.parse(text); } catch { throw new Error('The AI reply was incomplete — please try again.'); }
   return out;
 }
+
+// ── Recipes: read Osta screenshots and/or shared text into a structured recipe ──
+const RECIPE_SCHEMA = {
+  type: 'object',
+  properties: {
+    name: { type: 'string' },
+    link: { type: 'string' },
+    servings: { type: 'number' },
+    ingredients: { type: 'array', items: { type: 'string' } },
+    steps: { type: 'array', items: { type: 'string' } },
+    per_serving: {
+      type: 'object',
+      properties: { kcal: { type: 'number' }, protein_g: { type: 'number' }, carbs_g: { type: 'number' }, fat_g: { type: 'number' } },
+      required: ['kcal', 'protein_g', 'carbs_g', 'fat_g'],
+      additionalProperties: false,
+    },
+    macros_source: { type: 'string', enum: ['from_recipe', 'estimated'] },
+    warning: { type: 'string' },
+  },
+  required: ['name', 'link', 'servings', 'ingredients', 'steps', 'per_serving', 'macros_source', 'warning'],
+  additionalProperties: false,
+};
+
+const RECIPE_SYSTEM = `You turn saved recipes (screenshots from a recipe-saving app such as Osta, and/or text the person pasted) into a structured recipe for a calorie-tracking app.
+- Copy the recipe name, ingredient lines (with amounts) and steps as written. Combine information across all screenshots — they are pages of the same recipe.
+- "link": the social-media or website URL if one is visible or pasted, else "".
+- "servings": as stated; if not stated, your best estimate (at least 1).
+- "per_serving": if the recipe shows calories/macros, use them and convert totals to per-serving if they are for the whole recipe (macros_source "from_recipe"). If not shown, estimate from the ingredients (macros_source "estimated").
+- "warning": the person does not eat pork or any fish/seafood. If an ingredient is pork or seafood, name it and suggest a swap (e.g. chicken). Otherwise "".`;
+
+export async function extractRecipe(blobs = [], text = '') {
+  const key = getKey();
+  if (!key) throw new Error('Add your Anthropic API key in Settings first.');
+  const c = await client(key);
+  const content = [];
+  for (const b of blobs) content.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: await blobToBase64(b) } });
+  content.push({ type: 'text', text: text ? `Pasted text:\n${text}` : 'Read the recipe from these screenshots.' });
+  let res;
+  try {
+    res = await c.beta.messages.create({
+      model: MODEL,
+      max_tokens: 8000,
+      betas: ['server-side-fallback-2026-07-01'],
+      fallbacks: 'default',
+      system: RECIPE_SYSTEM,
+      output_config: { effort: 'low', format: { type: 'json_schema', schema: RECIPE_SCHEMA } },
+      messages: [{ role: 'user', content }],
+    });
+  } catch (e) {
+    const s = e?.status;
+    if (s === 401) throw new Error('The API key was rejected. Check it in Settings.');
+    if (s === 429) throw new Error('Too many requests right now — try again in a minute.');
+    if (!navigator.onLine) throw new Error('No internet connection.');
+    throw new Error(e?.message || 'Could not reach the AI.');
+  }
+  if (res.stop_reason === 'refusal') throw new Error('The AI could not read this. Fill the recipe in by hand.');
+  const out = res.content.filter((b) => b.type === 'text').map((b) => b.text).join('');
+  try { return JSON.parse(out); } catch { throw new Error('The AI reply was incomplete — please try again.'); }
+}

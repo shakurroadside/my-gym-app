@@ -18,6 +18,7 @@ export function defaults() {
     food: {}, // 'YYYY-MM-DD' → {breakfast, lunch, dinner, snack, photos}
     customFoods: {},
     savedMeals: [],
+    recipes: [], // {id, name, link, servings, per:{k,p,c,f}, ingredients[], steps[]}
     mealPlan: null,
     active: null,
   };

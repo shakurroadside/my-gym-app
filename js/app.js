@@ -7,7 +7,7 @@ import { lineChart } from './charts.js';
 import { bodyMap, MUSCLE_NAMES } from './bodymap.js';
 import { HOWTO, breathing, tempo } from './howto.js';
 import { FOODS, FOOD, FOOD_CATS, MEALS, MEAL_SLOTS, itemTotals } from './foods.js';
-import { getKey, setKey, estimatePlate } from './ai.js';
+import { getKey, setKey, estimatePlate, extractRecipe } from './ai.js';
 
 let S = load();
 let saveT = 0;
@@ -328,7 +328,9 @@ function vFood() {
   ui.foodDay = ui.foodDay || dayKey(Date.now());
   const today = dayKey(Date.now());
   const T = targets(S.profile, latestWeight());
-  const tabs = `<div class="seg"><button class="${ui.foodTab !== 'plan' ? 'on' : ''}" data-act="food-tab" data-t="log">Food log</button><button class="${ui.foodTab === 'plan' ? 'on' : ''}" data-act="food-tab" data-t="plan">Meal plan</button></div>`;
+  const ft = ui.foodTab || 'log';
+  const tabs = `<div class="seg three">${[['log', 'Food log'], ['plan', 'Meal plan'], ['recipes', 'Recipes']].map(([k, l]) => `<button class="${ft === k ? 'on' : ''}" data-act="food-tab" data-t="${k}">${l}</button>`).join('')}</div>`;
+  if (ft === 'recipes') return `<header class="top"><div><p class="eyebrow">From Osta & videos</p><h1>Recipes</h1></div></header>${tabs}${vRecipes()}`;
   if (ui.foodTab === 'plan') return `<header class="top"><div><p class="eyebrow">3 meals + 1 snack</p><h1>Meal plan</h1></div></header>${tabs}${vMealPlan(T)}`;
 
   const t = dayTotals(ui.foodDay);
@@ -410,7 +412,7 @@ function addFoodSheet(slot) {
   ui.foodCat = ui.foodCat || 'Recent';
   openSheet(`<h2>Add to ${esc(MEAL_SLOTS.find((x) => x[0] === slot)[1])}</h2>
     <input class="search" type="search" placeholder="Search: injera, chicken, eggs…" data-in="food-q">
-    <div class="row-scroll chips">${['Recent', 'My meals', ...FOOD_CATS, 'My foods'].map((c) => `<button class="chip ${ui.foodCat === c ? 'on' : ''}" data-act="food-cat" data-c="${c}">${c}</button>`).join('')}</div>
+    <div class="row-scroll chips">${['Recent', 'My meals', 'Recipes', ...FOOD_CATS, 'My foods'].map((c) => `<button class="chip ${ui.foodCat === c ? 'on' : ''}" data-act="food-cat" data-c="${c}">${c}</button>`).join('')}</div>
     <div id="food-results" class="list">${foodResults()}</div>
     <div class="btn-row"><button class="btn sm" data-act="quick-add">⚡ Quick add calories</button><button class="btn sm" data-act="food-new">${icon('plus')} Create a food</button></div>`);
 }
@@ -431,8 +433,17 @@ function foodResults() {
       : '<p class="muted small pad">No saved meals yet. Log a meal, then tap ★ Save meal to reuse it with one tap.</p>';
   }
   let list;
-  if (q) list = all.filter((f) => (f.name + ' ' + f.cat).toLowerCase().includes(q));
+  if (q) {
+    const rs = (S.recipes || []).filter((r) => r.name.toLowerCase().includes(q));
+    list = all.filter((f) => (f.name + ' ' + f.cat).toLowerCase().includes(q));
+    const rh = rs.map((r) => `<button class="lib-row" data-act="rec-pick" data-id="${r.id}"><span><b>🍽 ${esc(r.name)}</b><small>recipe · 1 serving · ${r.per.k} kcal · ${r.per.p} g P</small></span></button>`).join('');
+    if (rh) return rh + list.map((f) => `<button class="lib-row" data-act="food-pick" data-id="${f.id}"><span><b>${esc(f.name)}</b><small>${esc(f.portion)} · ${f.k} kcal · ${f.p} g P</small></span></button>`).join('');
+  }
   else if (ui.foodCat === 'Recent') { list = recentFoods(); if (!list.length) list = FOODS.filter((f) => ['injera', 'egg', 'chicken-breast', 'rice', 'potato', 'shiro', 'tibs', 'cheddar', 'ayib', 'misir'].includes(f.id)); }
+  else if (ui.foodCat === 'Recipes') {
+    const rs = S.recipes || [];
+    return rs.length ? rs.map((r) => `<button class="lib-row" data-act="rec-pick" data-id="${r.id}"><span><b>${esc(r.name)}</b><small>1 serving · ${r.per.k} kcal · ${r.per.p} g P</small></span></button>`).join('') : '<p class="muted small pad">No recipes yet — add them in Food → Recipes.</p>';
+  }
   else if (ui.foodCat === 'My foods') list = Object.values(S.customFoods || {});
   else list = all.filter((f) => f.cat === ui.foodCat);
   if (!list.length) return '<p class="muted small pad">Nothing here yet. Use “Create a food” for anything missing.</p>';
@@ -529,6 +540,129 @@ function aiResultSheet() {
     <div class="stats"><div><b>${r0(tk)}</b><small>kcal</small></div><div><b>${r0(tp)} g</b><small>protein</small></div><div><b>${on.length}</b><small>foods</small></div></div>
     <p class="muted small">AI estimates can be off by 20–30%, mostly from hidden oil. Untick anything wrong, then fix portions later by tapping the food.</p>
     <button class="btn primary big" data-act="ai-add">Add ${on.length} to meal</button>`);
+}
+
+// ───────────────────────── RECIPES ─────────────────────────
+const recipeFood = (r) => ({ id: r.id, name: r.name, portion: '1 serving', k: r.per.k, p: r.per.p, c: r.per.c, f: r.per.f });
+
+// Best-effort reader for text shared from Osta / websites (no AI needed).
+function parseRecipeText(txt) {
+  const lines = txt.split(/\r?\n/).map((l) => l.trim());
+  const num = (re) => { const m = txt.match(re); return m ? parseFloat(m[1]) : 0; };
+  const link = (txt.match(/https?:\/\/\S+/) || [''])[0].replace(/[)\].,]+$/, '');
+  const name = lines.find((l) => l && !/^https?:/i.test(l) && !/^(ingredients|instructions|directions|steps|method|nutrition)/i.test(l)) || '';
+  const section = (start, stop) => {
+    const i = lines.findIndex((l) => start.test(l));
+    if (i < 0) return [];
+    const out = [];
+    for (const l of lines.slice(i + 1)) { if (stop.test(l)) break; if (l) out.push(l.replace(/^(?:[-•*▢☐◦]\s*|\d+[.)]\s+)/, '').trim()); }
+    return out.filter(Boolean);
+  };
+  return {
+    name, link,
+    servings: num(/(?:serves|servings?|portions?)\s*[:\-]?\s*(\d+)/i) || 1,
+    ingredients: section(/^ingredients/i, /^(instructions|directions|steps|method|preparation|nutrition|macros)/i),
+    steps: section(/^(instructions|directions|steps|method|preparation)/i, /^(nutrition|macros|notes)/i),
+    per: {
+      k: num(/(\d+(?:\.\d+)?)\s*(?:k?cal|calories)/i) || num(/calories\s*[:\-]?\s*(\d+(?:\.\d+)?)/i),
+      p: num(/protein\s*[:\-]?\s*(\d+(?:\.\d+)?)/i) || num(/(\d+(?:\.\d+)?)\s*g\s*protein/i),
+      c: num(/carb(?:ohydrate)?s?\s*[:\-]?\s*(\d+(?:\.\d+)?)/i) || num(/(\d+(?:\.\d+)?)\s*g\s*carbs?/i),
+      f: num(/fats?\s*[:\-]?\s*(\d+(?:\.\d+)?)/i) || num(/(\d+(?:\.\d+)?)\s*g\s*fats?/i),
+    },
+  };
+}
+
+function vRecipes() {
+  const q = (ui.recQ || '').toLowerCase();
+  const list = (S.recipes || []).filter((r) => !q || (r.name + ' ' + r.ingredients.join(' ')).toLowerCase().includes(q));
+  return `
+  <div class="split pad"><p class="muted small">${(S.recipes || []).length} recipes</p><button class="btn sm primary" data-act="rec-new">${icon('plus')} Add recipe</button></div>
+  ${(S.recipes || []).length ? `<input class="search" type="search" placeholder="Search recipes or ingredients" data-in="rec-q" value="${esc(ui.recQ || '')}">` : ''}
+  <div id="rec-list">${recList(list)}</div>`;
+}
+function recList(list) {
+  if (!(S.recipes || []).length) return `<section class="card"><h3>Bring your Osta recipes here</h3>
+    <ol class="cues"><li>In Osta, open a recipe and tap <b>Share → Copy</b> (or take <b>screenshots</b> of the recipe page).</li><li>Here, tap <b>Add recipe</b> and paste the text or pick the screenshots.</li><li>Check the numbers and save. Then log a serving into any meal with one tap.</li></ol></section>`;
+  if (!list.length) return '<p class="muted pad">No recipes match.</p>';
+  return `<div class="card list">${list.map((r) => `<button class="lib-row" data-act="rec-view" data-id="${r.id}"><span class="rec-ic">${r.link ? '▶' : '🍽'}</span><span><b>${esc(r.name)}</b><small>${r.per.k} kcal · ${r.per.p} g protein per serving${r.est ? ' · estimated' : ''}</small></span></button>`).join('')}</div>`;
+}
+
+function recipeAddSheet() {
+  const ai = !!getKey();
+  openSheet(`<h2>Add a recipe</h2>
+    <h4>Option 1 · Paste from Osta</h4>
+    <p class="muted small">In Osta: open the recipe → <b>Share</b> → <b>Copy</b>. Then paste below. Add the video link too if it's not included.</p>
+    <textarea id="rec-paste" class="paste" rows="6" placeholder="Paste the recipe text and/or the TikTok / Instagram link here"></textarea>
+    <div class="btn-row"><button class="btn sm primary" data-act="rec-parse">Read it</button>${ai ? '<button class="btn sm" data-act="rec-parse-ai">✨ Read it with AI</button>' : ''}</div>
+    <h4>Option 2 · Screenshots</h4>
+    <p class="muted small">Screenshot the recipe in Osta (ingredients + macros), then pick all the screenshots at once.${ai ? '' : ' <b>Needs the AI key</b> (Settings).'}</p>
+    <label class="btn sm ${ai ? '' : 'disabled'}">${icon('cam')} Pick screenshots<input type="file" accept="image/*" multiple hidden data-in="rec-shots" ${ai ? '' : 'disabled'}></label>
+    <h4>Option 3 · Type it in</h4>
+    <button class="btn sm" data-act="rec-blank">Open empty recipe</button>`);
+}
+
+function recipeForm(r = {}, editId = null) {
+  const per = r.per || { k: '', p: '', c: '', f: '' };
+  openSheet(`<h2>${editId ? 'Edit recipe' : 'Check & save'}</h2>
+    ${r.warning ? `<p class="avoid">⚠️ ${esc(r.warning)}</p>` : ''}
+    ${r.est ? '<p class="muted small">Calories were not in the recipe, so they were estimated from the ingredients.</p>' : ''}
+    <form id="rf" class="form">
+      <label class="field">Name<input name="name" required value="${esc(r.name || '')}"></label>
+      <label class="field">Video / website link<input name="link" type="url" inputmode="url" placeholder="https://www.tiktok.com/…" value="${esc(r.link || '')}"></label>
+      <label class="field">Servings the recipe makes<input name="servings" type="number" inputmode="decimal" step="any" value="${r.servings || 1}"></label>
+      <p class="eyebrow">Per serving</p>
+      <div class="grid2"><label class="field">Calories<input name="k" type="number" inputmode="decimal" step="any" required value="${per.k}"></label><label class="field">Protein g<input name="p" type="number" inputmode="decimal" step="any" value="${per.p}"></label>
+      <label class="field">Carbs g<input name="c" type="number" inputmode="decimal" step="any" value="${per.c}"></label><label class="field">Fat g<input name="f" type="number" inputmode="decimal" step="any" value="${per.f}"></label></div>
+      <label class="toggle"><span>These numbers are for the WHOLE recipe</span><input type="checkbox" name="whole"></label>
+      <label class="field">Ingredients (one per line)<textarea name="ing" rows="6">${esc((r.ingredients || []).join('\n'))}</textarea></label>
+      <label class="field">Steps (one per line)<textarea name="steps" rows="5">${esc((r.steps || []).join('\n'))}</textarea></label>
+      <button class="btn primary big">Save recipe</button>
+    </form>`, (sh) => {
+    $('#rf', sh).addEventListener('submit', (ev) => {
+      ev.preventDefault();
+      const f = ev.target;
+      const sv = +f.servings.value || 1;
+      const div = f.whole.checked ? sv : 1;
+      const rr = (v) => Math.round(((+v || 0) / div) * 10) / 10;
+      const rec = {
+        id: editId || 'r-' + uid(), name: f.name.value.trim(), link: f.link.value.trim(), servings: sv,
+        per: { k: Math.round((+f.k.value || 0) / div), p: rr(f.p.value), c: rr(f.c.value), f: rr(f.f.value) },
+        ingredients: f.ing.value.split('\n').map((x) => x.trim()).filter(Boolean),
+        steps: f.steps.value.split('\n').map((x) => x.trim()).filter(Boolean),
+        est: !!r.est, created: r.created || Date.now(),
+      };
+      S.recipes = S.recipes || [];
+      const i = S.recipes.findIndex((x) => x.id === rec.id);
+      if (i >= 0) S.recipes[i] = rec; else S.recipes.unshift(rec);
+      commit(true); closeSheet(); ui.foodTab = 'recipes'; render(); toast('Recipe saved');
+    });
+  });
+}
+
+function recipeView(id) {
+  const r = (S.recipes || []).find((x) => x.id === id);
+  if (!r) return;
+  const safeLink = /^https?:\/\//i.test(r.link || '') ? r.link : '';
+  openSheet(`<h2>${esc(r.name)}</h2>
+    ${safeLink ? `<a class="btn primary big" href="${esc(safeLink)}" target="_blank" rel="noopener">▶ Watch the video</a>` : ''}
+    <div class="stats"><div><b>${r.per.k}</b><small>kcal / serving</small></div><div><b>${r.per.p} g</b><small>protein</small></div><div><b>${r.per.c}/${r.per.f}</b><small>carbs/fat g</small></div></div>
+    <p class="muted small">Makes ${r.servings} serving${r.servings === 1 ? '' : 's'}${r.est ? ' · calories estimated' : ''}</p>
+    <h4>Log a serving to</h4>
+    <div class="row-wrap">${MEAL_SLOTS.map(([slot, title, emo]) => `<button class="chip" data-act="rec-log" data-id="${r.id}" data-slot="${slot}">${emo} ${esc(title.split('·')[1]?.trim() || title)}</button>`).join('')}</div>
+    ${r.ingredients.length ? `<h4>Ingredients</h4><ul class="groc">${r.ingredients.map((x) => `<li><label class="chk"><input type="checkbox"><span>${esc(x)}</span></label></li>`).join('')}</ul>` : ''}
+    ${r.steps.length ? `<h4>Steps</h4><ol class="cues">${r.steps.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>` : ''}
+    <div class="btn-row"><button class="btn sm" data-act="rec-edit" data-id="${r.id}">Edit</button><button class="btn sm danger" data-act="rec-del" data-id="${r.id}">Delete</button></div>`);
+}
+
+async function recipeAI(blobs, text) {
+  openSheet(`<div class="done-sheet"><div class="big-emoji spin">✨</div><h2>Reading the recipe…</h2><p class="muted">About 10–30 seconds.</p></div>`);
+  try {
+    const o = await extractRecipe(blobs, text);
+    recipeForm({ name: o.name, link: o.link, servings: o.servings, ingredients: o.ingredients, steps: o.steps, warning: o.warning, est: o.macros_source === 'estimated',
+      per: { k: Math.round(o.per_serving.kcal), p: Math.round(o.per_serving.protein_g), c: Math.round(o.per_serving.carbs_g), f: Math.round(o.per_serving.fat_g) } });
+  } catch (e) {
+    openSheet(`<div class="done-sheet"><div class="big-emoji">😕</div><h2>Couldn't read it</h2><p>${esc(e.message)}</p><button class="btn big" data-act="rec-new">Try another way</button></div>`);
+  }
 }
 
 // ───────────────────────── SETTINGS ─────────────────────────
@@ -954,6 +1088,28 @@ function woDetail(id) {
 
 // ───────────────────────── actions ─────────────────────────
 const A = {
+  'rec-new': recipeAddSheet,
+  'rec-blank': () => recipeForm({}),
+  'rec-parse': () => {
+    const t = $('#rec-paste')?.value || '';
+    if (!t.trim()) return toast('Paste the recipe first');
+    const r = parseRecipeText(t);
+    if (!r.per.k && getKey()) { recipeAI([], t); return; }
+    recipeForm(r);
+  },
+  'rec-parse-ai': () => { const t = $('#rec-paste')?.value || ''; if (!t.trim()) return toast('Paste the recipe first'); recipeAI([], t); },
+  'rec-view': (el) => recipeView(el.dataset.id),
+  'rec-edit': (el) => { const r = S.recipes.find((x) => x.id === el.dataset.id); recipeForm(r, r.id); },
+  'rec-del': (el) => { if (!confirm('Delete this recipe? Meals you already logged stay.')) return; S.recipes = S.recipes.filter((x) => x.id !== el.dataset.id); commit(true); closeSheet(); render(); },
+  'rec-log': (el) => {
+    const r = S.recipes.find((x) => x.id === el.dataset.id), slot = el.dataset.slot;
+    ui.foodDay = ui.foodDay || dayKey(Date.now());
+    qtySheet({ food: recipeFood(r), q: 1, title: 'Add to meal', onSave: (q) => { foodDay()[slot].push({ id: uid(), q, x: { ...recipeFood(r), name: r.name }, rid: r.id }); toast('Logged'); } });
+  },
+  'rec-pick': (el) => {
+    const r = S.recipes.find((x) => x.id === el.dataset.id), slot = ui.addSlot;
+    qtySheet({ food: recipeFood(r), q: 1, title: 'Add', onSave: (q) => { foodDay()[slot].push({ id: uid(), q, x: { ...recipeFood(r), name: r.name }, rid: r.id }); toast(`Added ${r.name}`); } });
+  },
   'food-tab': (el) => { ui.foodTab = el.dataset.t; render(true); },
   'food-day': (el) => { ui.foodDay = shiftDay(ui.foodDay, +el.dataset.n); render(); },
   'food-add': (el) => addFoodSheet(el.dataset.slot),
@@ -1200,6 +1356,14 @@ document.addEventListener('click', (ev) => {
 
 // ───────────────────────── inputs ─────────────────────────
 const IN = {
+  'rec-q': (el) => { ui.recQ = el.value; const q = el.value.toLowerCase(); $('#rec-list').innerHTML = recList((S.recipes || []).filter((r) => (r.name + ' ' + r.ingredients.join(' ')).toLowerCase().includes(q))); },
+  'rec-shots': async (el) => {
+    const files = [...(el.files || [])].slice(0, 6);
+    if (!files.length) return;
+    const blobs = [];
+    for (const f of files) blobs.push(await resizeImage(f, 1568));
+    recipeAI(blobs, '');
+  },
   'food-q': (el) => { ui.foodQ = el.value; $('#food-results').innerHTML = foodResults(); },
   'ai-on': (el) => { ui.aiItems[+el.dataset.i].on = el.checked; aiResultSheet(); },
   'ai-key': (el) => { const v = el.value.trim(); if (v && !v.startsWith('•')) { setKey(v); toast('Key saved on this phone'); render(); } },
