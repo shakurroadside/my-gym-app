@@ -589,29 +589,38 @@ function recList(list) {
 
 function recipeAddSheet() {
   const ai = !!getKey();
+  ui.pendingShots = [];
   openSheet(`<h2>Add a recipe</h2>
     <h4>📸 From Instagram / TikTok</h4>
     <ol class="cues small-cues">
-      <li><b>In Instagram:</b> on the post tap <b>…more</b> to open the full caption and <b>screenshot</b> it (ingredients + macros).</li>
+      <li><b>In Instagram:</b> tap <b>…more</b> under the post to open the full caption, then <b>take a screenshot</b> (press side button + volume up). Take 2–3 if it's long.</li>
       <li>Still there: tap <b>Share (✈︎) → Copy link</b>.</li>
-      <li><b>Here:</b> tap <b>Paste link</b>, then <b>Pick caption screenshots</b> — the recipe fills itself in.</li>
+      <li><b>Here:</b> tap <b>Paste link</b>, then <b>Add screenshots</b>.</li>
     </ol>
     <div class="link-row"><input id="rec-link" class="paste" type="url" inputmode="url" placeholder="Video link" value="${esc(ui.recLink || '')}"><button class="btn sm" data-act="rec-paste-link">📋 Paste link</button></div>
-    ${ai ? `<label class="btn primary big">${icon('cam')} Pick caption screenshots<input type="file" accept="image/*" multiple hidden data-in="rec-shots"></label>`
-      : `<p class="muted small">Reading screenshots automatically needs the AI key (Settings → Photo calorie estimates). Without it, continue and type the macros from the caption.</p>`}
-    <button class="btn ghost" data-act="rec-link-manual">Continue & type it in</button>
-    <h4>📋 Paste from Osta</h4>
-    <p class="muted small">In Osta: open the recipe → <b>Share</b> → <b>Copy</b>, then paste below.</p>
-    <textarea id="rec-paste" class="paste" rows="5" placeholder="Paste the recipe text here"></textarea>
-    <div class="btn-row"><button class="btn sm primary" data-act="rec-parse">Read it</button>${ai ? '<button class="btn sm" data-act="rec-parse-ai">✨ Read it with AI</button>' : ''}</div>`);
+    <label class="btn primary big">${icon('cam')} Add screenshots<input type="file" accept="image/*" multiple hidden data-in="rec-shots"></label>
+    <p class="muted small">${ai ? '✨ The AI will read the screenshots and fill in everything.' : 'The screenshots are saved inside the recipe so you can always read the ingredients. You just type the name, calories and protein.'}</p>
+    <h4>📋 Or paste the recipe text</h4>
+    <details class="tip"><summary>Instagram won't let you copy the caption? Use this iPhone trick</summary>
+      <ol class="cues small-cues"><li>Open your caption screenshot in the <b>Photos</b> app.</li><li><b>Press and hold</b> on the words until they highlight (Live Text).</li><li>Tap <b>Select All → Copy</b>.</li><li>Come back here and paste in the box below.</li></ol></details>
+    <textarea id="rec-paste" class="paste" rows="5" placeholder="Paste recipe text (from Osta, Photos Live Text, or a website)"></textarea>
+    <div class="btn-row"><button class="btn sm primary" data-act="rec-parse">Read it</button>${ai ? '<button class="btn sm" data-act="rec-parse-ai">✨ Read it with AI</button>' : ''}</div>
+    <button class="btn ghost" data-act="rec-link-manual">Type everything in myself</button>`);
 }
 const curLink = () => ($('#rec-link')?.value || ui.recLink || '').trim();
+
+function shotsHtml(ids = []) {
+  if (!ids?.length) return '';
+  return `<div class="shots">${ids.map((id) => `<img data-photo-id="${id}" alt="Recipe screenshot" data-act="shot-view">`).join('')}</div>`;
+}
 
 function recipeForm(r = {}, editId = null) {
   const per = r.per || { k: '', p: '', c: '', f: '' };
   openSheet(`<h2>${editId ? 'Edit recipe' : 'Check & save'}</h2>
     ${r.warning ? `<p class="avoid">⚠️ ${esc(r.warning)}</p>` : ''}
     ${r.est ? '<p class="muted small">Calories were not in the recipe, so they were estimated from the ingredients.</p>' : ''}
+    ${shotsHtml(r.shots || ui.pendingShots)}
+    ${(r.shots || ui.pendingShots || []).length && !r.name ? '<p class="muted small">👆 Swipe through your screenshots and copy the numbers into the boxes below. Ingredients are optional — the screenshots stay saved in the recipe.</p>' : ''}
     <form id="rf" class="form">
       <label class="field">Name<input name="name" required value="${esc(r.name || '')}"></label>
       <label class="field">Video / website link<input name="link" type="url" inputmode="url" placeholder="https://www.tiktok.com/…" value="${esc(r.link || '')}"></label>
@@ -624,6 +633,7 @@ function recipeForm(r = {}, editId = null) {
       <label class="field">Steps (one per line)<textarea name="steps" rows="5">${esc((r.steps || []).join('\n'))}</textarea></label>
       <button class="btn primary big">Save recipe</button>
     </form>`, (sh) => {
+    loadMealPhotos();
     $('#rf', sh).addEventListener('submit', (ev) => {
       ev.preventDefault();
       const f = ev.target;
@@ -636,7 +646,9 @@ function recipeForm(r = {}, editId = null) {
         ingredients: f.ing.value.split('\n').map((x) => x.trim()).filter(Boolean),
         steps: f.steps.value.split('\n').map((x) => x.trim()).filter(Boolean),
         est: !!r.est, created: r.created || Date.now(),
+        shots: r.shots || ui.pendingShots || [],
       };
+      ui.pendingShots = [];
       S.recipes = S.recipes || [];
       const i = S.recipes.findIndex((x) => x.id === rec.id);
       if (i >= 0) S.recipes[i] = rec; else S.recipes.unshift(rec);
@@ -653,11 +665,12 @@ function recipeView(id) {
     ${safeLink ? `<a class="btn primary big" href="${esc(safeLink)}" target="_blank" rel="noopener">▶ Watch the video</a>` : ''}
     <div class="stats"><div><b>${r.per.k}</b><small>kcal / serving</small></div><div><b>${r.per.p} g</b><small>protein</small></div><div><b>${r.per.c}/${r.per.f}</b><small>carbs/fat g</small></div></div>
     <p class="muted small">Makes ${r.servings} serving${r.servings === 1 ? '' : 's'}${r.est ? ' · calories estimated' : ''}</p>
+    ${shotsHtml(r.shots)}
     <h4>Log a serving to</h4>
     <div class="row-wrap">${MEAL_SLOTS.map(([slot, title, emo]) => `<button class="chip" data-act="rec-log" data-id="${r.id}" data-slot="${slot}">${emo} ${esc(title.split('·')[1]?.trim() || title)}</button>`).join('')}</div>
     ${r.ingredients.length ? `<h4>Ingredients</h4><ul class="groc">${r.ingredients.map((x) => `<li><label class="chk"><input type="checkbox"><span>${esc(x)}</span></label></li>`).join('')}</ul>` : ''}
     ${r.steps.length ? `<h4>Steps</h4><ol class="cues">${r.steps.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>` : ''}
-    <div class="btn-row"><button class="btn sm" data-act="rec-edit" data-id="${r.id}">Edit</button><button class="btn sm danger" data-act="rec-del" data-id="${r.id}">Delete</button></div>`);
+    <div class="btn-row"><button class="btn sm" data-act="rec-edit" data-id="${r.id}">Edit</button><button class="btn sm danger" data-act="rec-del" data-id="${r.id}">Delete</button></div>`, () => loadMealPhotos());
 }
 
 async function recipeAI(blobs, text) {
@@ -1096,6 +1109,7 @@ function woDetail(id) {
 const A = {
   'rec-new': recipeAddSheet,
   'rec-blank': () => recipeForm({}),
+  'shot-view': (el) => el.classList.toggle('zoom'),
   'rec-paste-link': async () => {
     try {
       const t = (await navigator.clipboard.readText()) || '';
@@ -1120,7 +1134,7 @@ const A = {
   'rec-parse-ai': () => { const t = $('#rec-paste')?.value || ''; if (!t.trim()) return toast('Paste the recipe first'); recipeAI([], t); },
   'rec-view': (el) => recipeView(el.dataset.id),
   'rec-edit': (el) => { const r = S.recipes.find((x) => x.id === el.dataset.id); recipeForm(r, r.id); },
-  'rec-del': (el) => { if (!confirm('Delete this recipe? Meals you already logged stay.')) return; S.recipes = S.recipes.filter((x) => x.id !== el.dataset.id); commit(true); closeSheet(); render(); },
+  'rec-del': (el) => { if (!confirm('Delete this recipe? Meals you already logged stay.')) return; for (const id of S.recipes.find((x) => x.id === el.dataset.id)?.shots || []) delPhoto(id).catch(() => {}); S.recipes = S.recipes.filter((x) => x.id !== el.dataset.id); commit(true); closeSheet(); render(); },
   'rec-log': (el) => {
     const r = S.recipes.find((x) => x.id === el.dataset.id), slot = el.dataset.slot;
     ui.foodDay = ui.foodDay || dayKey(Date.now());
@@ -1380,11 +1394,20 @@ const IN = {
   'rec-shots': async (el) => {
     const files = [...(el.files || [])].slice(0, 6);
     if (!files.length) return;
-    const blobs = [];
-    for (const f of files) blobs.push(await resizeImage(f, 1568));
     const link = curLink();
     ui.recLink = '';
-    recipeAI(blobs, link ? `Video link: ${link}\nRead the recipe from the caption screenshots.` : '');
+    toast('Saving screenshots…');
+    const blobs = [];
+    ui.pendingShots = [];
+    for (const f of files) {
+      const b = await resizeImage(f, 1568);
+      blobs.push(b);
+      const id = uid();
+      await putPhoto({ id, kind: 'recipe', date: Date.now(), blob: b });
+      ui.pendingShots.push(id);
+    }
+    if (getKey()) recipeAI(blobs, link ? `Video link: ${link}\nRead the recipe from the caption screenshots.` : '');
+    else recipeForm({ link });
   },
   'food-q': (el) => { ui.foodQ = el.value; $('#food-results').innerHTML = foodResults(); },
   'ai-on': (el) => { ui.aiItems[+el.dataset.i].on = el.checked; aiResultSheet(); },
