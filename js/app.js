@@ -590,16 +590,22 @@ function recList(list) {
 function recipeAddSheet() {
   const ai = !!getKey();
   openSheet(`<h2>Add a recipe</h2>
-    <h4>Option 1 · Paste from Osta</h4>
-    <p class="muted small">In Osta: open the recipe → <b>Share</b> → <b>Copy</b>. Then paste below. Add the video link too if it's not included.</p>
-    <textarea id="rec-paste" class="paste" rows="6" placeholder="Paste the recipe text and/or the TikTok / Instagram link here"></textarea>
-    <div class="btn-row"><button class="btn sm primary" data-act="rec-parse">Read it</button>${ai ? '<button class="btn sm" data-act="rec-parse-ai">✨ Read it with AI</button>' : ''}</div>
-    <h4>Option 2 · Screenshots</h4>
-    <p class="muted small">Screenshot the recipe in Osta (ingredients + macros), then pick all the screenshots at once.${ai ? '' : ' <b>Needs the AI key</b> (Settings).'}</p>
-    <label class="btn sm ${ai ? '' : 'disabled'}">${icon('cam')} Pick screenshots<input type="file" accept="image/*" multiple hidden data-in="rec-shots" ${ai ? '' : 'disabled'}></label>
-    <h4>Option 3 · Type it in</h4>
-    <button class="btn sm" data-act="rec-blank">Open empty recipe</button>`);
+    <h4>📸 From Instagram / TikTok</h4>
+    <ol class="cues small-cues">
+      <li><b>In Instagram:</b> on the post tap <b>…more</b> to open the full caption and <b>screenshot</b> it (ingredients + macros).</li>
+      <li>Still there: tap <b>Share (✈︎) → Copy link</b>.</li>
+      <li><b>Here:</b> tap <b>Paste link</b>, then <b>Pick caption screenshots</b> — the recipe fills itself in.</li>
+    </ol>
+    <div class="link-row"><input id="rec-link" class="paste" type="url" inputmode="url" placeholder="Video link" value="${esc(ui.recLink || '')}"><button class="btn sm" data-act="rec-paste-link">📋 Paste link</button></div>
+    ${ai ? `<label class="btn primary big">${icon('cam')} Pick caption screenshots<input type="file" accept="image/*" multiple hidden data-in="rec-shots"></label>`
+      : `<p class="muted small">Reading screenshots automatically needs the AI key (Settings → Photo calorie estimates). Without it, continue and type the macros from the caption.</p>`}
+    <button class="btn ghost" data-act="rec-link-manual">Continue & type it in</button>
+    <h4>📋 Paste from Osta</h4>
+    <p class="muted small">In Osta: open the recipe → <b>Share</b> → <b>Copy</b>, then paste below.</p>
+    <textarea id="rec-paste" class="paste" rows="5" placeholder="Paste the recipe text here"></textarea>
+    <div class="btn-row"><button class="btn sm primary" data-act="rec-parse">Read it</button>${ai ? '<button class="btn sm" data-act="rec-parse-ai">✨ Read it with AI</button>' : ''}</div>`);
 }
+const curLink = () => ($('#rec-link')?.value || ui.recLink || '').trim();
 
 function recipeForm(r = {}, editId = null) {
   const per = r.per || { k: '', p: '', c: '', f: '' };
@@ -658,7 +664,7 @@ async function recipeAI(blobs, text) {
   openSheet(`<div class="done-sheet"><div class="big-emoji spin">✨</div><h2>Reading the recipe…</h2><p class="muted">About 10–30 seconds.</p></div>`);
   try {
     const o = await extractRecipe(blobs, text);
-    recipeForm({ name: o.name, link: o.link, servings: o.servings, ingredients: o.ingredients, steps: o.steps, warning: o.warning, est: o.macros_source === 'estimated',
+    recipeForm({ name: o.name, link: o.link || (text.match(/https?:\/\/\S+/) || [''])[0], servings: o.servings, ingredients: o.ingredients, steps: o.steps, warning: o.warning, est: o.macros_source === 'estimated',
       per: { k: Math.round(o.per_serving.kcal), p: Math.round(o.per_serving.protein_g), c: Math.round(o.per_serving.carbs_g), f: Math.round(o.per_serving.fat_g) } });
   } catch (e) {
     openSheet(`<div class="done-sheet"><div class="big-emoji">😕</div><h2>Couldn't read it</h2><p>${esc(e.message)}</p><button class="btn big" data-act="rec-new">Try another way</button></div>`);
@@ -1090,6 +1096,20 @@ function woDetail(id) {
 const A = {
   'rec-new': recipeAddSheet,
   'rec-blank': () => recipeForm({}),
+  'rec-paste-link': async () => {
+    try {
+      const t = (await navigator.clipboard.readText()) || '';
+      const m = t.match(/https?:\/\/\S+/);
+      if (!m) return toast('No link copied — tap Share → Copy link on the post first');
+      ui.recLink = m[0];
+      $('#rec-link').value = m[0];
+      toast(/instagram|tiktok|youtu/i.test(m[0]) ? 'Link pasted ✓' : 'Link pasted');
+    } catch {
+      $('#rec-link')?.focus();
+      toast('Tap the box, then long-press → Paste');
+    }
+  },
+  'rec-link-manual': () => { const link = curLink(); ui.recLink = ''; recipeForm({ link }); },
   'rec-parse': () => {
     const t = $('#rec-paste')?.value || '';
     if (!t.trim()) return toast('Paste the recipe first');
@@ -1362,7 +1382,9 @@ const IN = {
     if (!files.length) return;
     const blobs = [];
     for (const f of files) blobs.push(await resizeImage(f, 1568));
-    recipeAI(blobs, '');
+    const link = curLink();
+    ui.recLink = '';
+    recipeAI(blobs, link ? `Video link: ${link}\nRead the recipe from the caption screenshots.` : '');
   },
   'food-q': (el) => { ui.foodQ = el.value; $('#food-results').innerHTML = foodResults(); },
   'ai-on': (el) => { ui.aiItems[+el.dataset.i].on = el.checked; aiResultSheet(); },

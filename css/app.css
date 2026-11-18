@@ -315,3 +315,8 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
 .paste { width: 100%; font: inherit; font-size: 15px; color: var(--text); background: var(--card2); border: 1px solid var(--line); border-radius: 10px; padding: 10px; }
 .btn.disabled { opacity: .45; pointer-events: none; }
 a.btn { text-decoration: none; color: var(--accent-ink); }
+
+.link-row { display: flex; gap: 8px; align-items: center; margin: 8px 0; }
+.link-row .paste { flex: 1; min-width: 0; min-height: 40px; padding: 8px 10px; }
+.small-cues li { font-size: 14px; margin: 4px 0; }
+label.btn.big { width: 100%; }
