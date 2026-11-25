@@ -2,7 +2,7 @@ import { LIBRARY, LIB, MUSCLES } from './exercises.js';
 import { svg, animate } from './diagram.js';
 import { WHY, SCHEDULE, targets, defaultProgram, phase } from './program.js';
 import { load, save, defaults, requestPersist, putPhoto, delPhoto, allPhotos, getPhoto, resizeImage, exportAll, importAll } from './store.js';
-import { suggest, entryStats, workingSets, uid, dayKey, startOfWeek, fmtDate, fmtDur, fmtClock, fmtW, esc, toKg, e1rm } from './logic.js';
+import { roundTo, suggest, entryStats, workingSets, uid, dayKey, startOfWeek, fmtDate, fmtDur, fmtClock, fmtW, esc, toKg, e1rm } from './logic.js';
 import { lineChart } from './charts.js';
 import { bodyMap, MUSCLE_NAMES } from './bodymap.js';
 import { HOWTO, breathing, tempo } from './howto.js';
@@ -790,6 +790,30 @@ function makeEntry(exId, item, planIdx = null) {
   return { exId, unit: ex.unit, item: { ...item }, sug, sets, planIdx };
 }
 
+// Deload week = half the sets. Main lift gets 2 automatic warm-up sets (50% × 8, 75% × 4).
+function buildEntries(d) {
+  const deload = phase(S.program.start).name === 'Deload';
+  return d.items.map((x, i) => {
+    const item = deload ? { ...x, sets: Math.max(1, Math.ceil(x.sets / 2)) } : x;
+    const e = makeEntry(x.exId, item, i);
+    const ex = getEx(x.exId);
+    if (i === 0 && ex && ex.type === 'reps' && !ex.bw && ex.muscle !== 'Core') {
+      const w = +e.sets[0]?.w || 0;
+      const r = (f) => (w ? Math.max(0, roundTo(w * f, ex.inc || 1)) : '');
+      e.sets.unshift({ w: r(0.5), reps: 8, warm: true, done: false }, { w: r(0.75), reps: 4, warm: true, done: false });
+    }
+    if (deload) {
+      const last = history(x.exId).find((h) => workingSets(h).length);
+      if (last && last.unit === e.unit && ex?.type === 'reps') {
+        const lw = Math.max(...workingSets(last).map((z) => +z.w || 0));
+        for (const st of e.sets) if (!st.warm && lw) st.w = lw;
+      }
+      e.sug = { kind: 'same', msg: '🔄 Deload week: same weight as last time, half the sets. Let your body recover.' };
+    }
+    return e;
+  });
+}
+
 function startWorkout(di) {
   const d = S.program.days[di];
   if (!d) return;
@@ -797,7 +821,7 @@ function startWorkout(di) {
     id: uid(), dayIdx: di, dayId: d.id, dayName: d.name, start: Date.now(),
     warm: d.warmup?.min ? { exId: d.warmup.exId, min: d.warmup.min, speed: '', incline: '', done: false } : null,
     fin: d.finisher?.min ? { exId: d.finisher.exId, min: d.finisher.min, speed: '', incline: '', done: false } : null,
-    entries: d.items.map((x, i) => makeEntry(x.exId, x, i)),
+    entries: buildEntries(d),
   };
   commit(true);
   wake(true);
@@ -845,11 +869,13 @@ function exCard(e, i, lbl = '') {
   const bwOnly = ex.bw && !ex.inc;
   const note = S.exNotes[e.exId] || '';
   const allDone = e.sets.length && e.sets.every((s) => s.done);
+  let wn = 0;
   const rows = e.sets.map((s, j) => {
-    const p = prevSets[j];
+    const p = s.warm ? null : prevSets[wn];
+    const num = s.warm ? 'W' : ++wn;
     const prevTxt = p ? (isTime ? `${p.secs}s` : `${+p.w ? fmtW(+p.w) + '×' : ''}${p.reps}`) : '—';
     return `<div class="set-row ${s.done ? 'done' : ''}">
-      <button class="set-n ${s.warm ? 'warm' : ''}" data-act="set-warm" data-i="${i}" data-j="${j}" aria-label="Toggle warm-up set">${s.warm ? 'W' : j + 1}</button>
+      <button class="set-n ${s.warm ? 'warm' : ''}" data-act="set-warm" data-i="${i}" data-j="${j}" aria-label="Toggle warm-up set">${num}</button>
       <span class="prev">${prevTxt}</span>
       ${isTime
         ? `<input type="number" inputmode="numeric" data-in="set" data-i="${i}" data-j="${j}" data-f="secs" value="${esc(s.secs)}" placeholder="${e.item.repMin}"><button class="ib hold" data-act="hold" data-i="${i}" data-j="${j}" aria-label="Start hold timer">${icon('play')}</button>`
