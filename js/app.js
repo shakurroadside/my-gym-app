@@ -12,6 +12,12 @@ import { getKey, setKey, estimatePlate, extractRecipe } from './ai.js';
 
 let S = load();
 S.migr = S.migr || {};
+if (!S.migr.v3plan) {
+  S.program = defaultProgram();
+  S.nextDay = 0;
+  S.migr.v3plan = true;
+  S.migr.v2plan = true;
+}
 if (!S.migr.v2plan) {
   S.program = defaultProgram();
   S.nextDay = 0;
