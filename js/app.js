@@ -84,7 +84,11 @@ function getEx(id) {
   const g = GYM[id] || {};
   return { ...base, gym: g.where ? g : null, unit: ov.unit || g.unit || base.unit || 'kg', inc: ov.inc ?? g.inc ?? base.inc ?? 0 };
 }
-const diagramOf = (ex) => ex?.d || LIB[ex?.like]?.d || LIB.plank.d;
+const diagramOf = (ex) => {
+  const d = ex?.d || LIB[ex?.like]?.d || LIB.plank.d;
+  const h = HOWTO[ex?.id] || HOWTO[ex?.like] || {};
+  return { ...d, mus: h.p || [], mus2: h.s || [] };
+};
 const inPlan = (id) => S.program.days.some((d) => d.items.some((x) => x.exId === id));
 const allEx = () => [...LIBRARY.filter((e) => !NOT_HERE.has(e.id) || inPlan(e.id)).map((e) => getEx(e.id)), ...Object.keys(S.customEx).map(getEx)];
 

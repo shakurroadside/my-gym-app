@@ -1,5 +1,9 @@
 [hidden] { display: none !important; }
 :root {
+  --skin: #d4d7cf;
+  --skin-out: #5d6256;
+  --mus: #ef4b36;
+  --mus2: #f39a8a;
   --bg: #0e0f0c;
   --card: #181a16;
   --card2: #22251f;
@@ -358,3 +362,14 @@ details.tip summary { font-weight: 700; cursor: pointer; color: var(--accent); }
 .backup-card { display: flex; align-items: center; justify-content: space-between; gap: 10px; border-color: var(--down); }
 .backup-card small { display: block; color: var(--muted); }
 .top .gear { flex: none; align-self: flex-start; }
+
+/* body figure */
+.dg .b-out { fill: var(--skin-out); stroke: var(--skin-out); }
+.dg .b-skin { fill: var(--skin); stroke: var(--skin); }
+.dg .m1 { fill: var(--mus); }
+.dg .m2 { fill: var(--mus2); opacity: .85; }
+.dg .b-line { stroke: var(--skin-out); stroke-width: .7; opacity: .7; }
+.dg .far { opacity: .55; }
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) { --skin: #e4e6e1; --skin-out: #8d9287; } }
+.dg .m1 { stroke: var(--mus); stroke-width: 3; stroke-linejoin: round; }
+.dg .m2 { stroke: var(--mus2); stroke-width: 3; stroke-linejoin: round; }

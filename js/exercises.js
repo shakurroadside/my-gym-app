@@ -507,7 +507,7 @@ export const LIBRARY = [
       A: { x: 96, y: 108, t: 180, hd: 185, ua: 95, fa: 0, th: 0, sh: 0, ft: 90 },
       B: { x: 96, y: 108, t: 180, hd: 185, ua: 95, fa: 0, th: 2, sh: -118, ft: -30 },
       props: [FLOOR, { k: 'pad', p: [[40, 116], [125, 116]], w: 7 }, { k: 'line', p: [[60, 119], [60, 157]] }, { k: 'line', p: [[110, 119], [110, 157]] }, { k: 'roller', at: 'an', dx: 0, dy: -6, r: 5 }],
-      hl: ['leg'],
+      hl: ['leg'], flip: true,
     },
   },
   {
