@@ -598,6 +598,93 @@ LIBRARY.push(
   },
 );
 
+LIBRARY.push(
+  {
+    id: 'hack-squat', name: 'Hack Squat (Nautilus)', muscle: 'Legs', target: 'Quads, glutes',
+    equip: 'Machine', type: 'reps', unit: 'lb', inc: 20,
+    cues: ['Lower slowly until thighs are about parallel to the foot plate.', 'Knees track over your toes — don\'t let them cave in.', 'Push through the whole foot to stand back up.', 'Stop just before your knees lock.'],
+    avoid: 'Heels lifting or your lower back peeling off the pad at the bottom.',
+    d: {
+      A: { x: 92, y: 82, t: -112, hd: -100, ua: 125, fa: -75, th: 88, sh: 98, ft: -10 },
+      B: { x: 72, y: 114, t: -118, hd: -100, ua: 125, fa: -75, th: 12, sh: 112, ft: -10 },
+      props: [FLOOR, { k: 'line', p: [[40, 157], [118, 20]], w: 3 }, { k: 'line', p: [[92, 152], [140, 140]], w: 6 }, { k: 'roller', at: 'sh', dx: -4, dy: -6, r: 6 }],
+      hl: ['leg'],
+    },
+  },
+  {
+    id: 'belt-squat', name: 'Belt Squat (Nautilus)', muscle: 'Legs', target: 'Quads, glutes (no load on your back)',
+    equip: 'Machine', type: 'reps', unit: 'lb', inc: 20,
+    cues: ['Sit back and down between your heels, chest up.', 'Hold the front handles lightly for balance.', 'Go as deep as you can with a flat back.', 'Drive up through your heels.'],
+    avoid: 'Rounding your lower back at the bottom.',
+    d: {
+      A: s(ST, { ua: 40, fa: 10 }),
+      B: { x: 78, y: 111, t: -70, hd: -80, ua: 20, fa: 0, th: 10, sh: 110, ft: -2 },
+      props: [FLOOR, { k: 'cable', from: [96, 156], to: 'hip' }, { k: 'line', p: [[150, 157], [150, 60], [140, 60]], w: 3 }, { k: 'line', p: [[70, 157], [130, 157]], w: 5 }],
+      hl: ['leg'],
+    },
+  },
+  {
+    id: 'bb-squat', name: 'Barbell Back Squat (Half Rack)', muscle: 'Legs', target: 'Quads, glutes, core',
+    equip: 'Barbell', type: 'reps', unit: 'lb', inc: 10,
+    cues: ['Bar on your upper back (not your neck), grip just outside shoulders.', 'Brace your abs like someone is about to punch you.', 'Sit down between your heels until thighs are parallel.', 'Stand up, pushing the floor away.'],
+    avoid: 'Squatting without the safety arms set — always set them just below your bottom position.',
+    d: {
+      A: s(ST, { ua: 140, fa: -60 }),
+      B: { x: 76, y: 111, t: -55, hd: -70, ua: 175, fa: -60, th: 10, sh: 110, ft: -2 },
+      props: [FLOOR, { k: 'plate', at: 'sh', r: 13, front: true }],
+      hl: ['leg', 'torso'],
+    },
+  },
+  {
+    id: 'trap-bar-deadlift', name: 'Trap Bar Deadlift', muscle: 'Legs', target: 'Glutes, hamstrings, quads, back',
+    equip: 'Barbell', type: 'reps', unit: 'lb', inc: 10,
+    cues: ['Stand in the middle of the hex bar, feet hip-width.', 'Hips down, chest up, grab the handles.', 'Push the floor away and stand tall.', 'Lower by pushing hips back, bar close to your legs.'],
+    avoid: 'Rounding your back or jerking the bar off the floor.',
+    d: {
+      A: { x: 80, y: 104, t: -45, hd: -30, ua: 92, fa: 92, th: 18, sh: 105, ft: -2 },
+      B: s(ST, { ua: 92, fa: 92 }),
+      props: [FLOOR, { k: 'plate', at: 'ha', r: 13, front: true }],
+      hl: ['leg', 'torso'],
+    },
+  },
+  {
+    id: 'pull-up', name: 'Pull-Up (Half Rack bar)', muscle: 'Back', target: 'Lats, biceps, core',
+    equip: 'Bodyweight', type: 'reps', bw: true, inc: 0,
+    cues: ['Grip the bar a little wider than shoulders, palms away.', 'Pull your chest toward the bar, elbows down.', 'Lower all the way slowly.', 'Can\'t do one yet? Use the assisted machine or slow negatives (jump up, lower in 4 seconds).'],
+    avoid: 'Swinging or half reps.',
+    d: {
+      A: { v: 'f', x: 100, y: 106, ua: -66, fa: -80, th: 88, sh: 92 },
+      B: { v: 'f', x: 100, y: 76, ua: 35, fa: -88, th: 88, sh: 92 },
+      props: [{ k: 'line', p: [[50, 12], [150, 12]], w: 4 }, { k: 'line', p: [[46, 157], [46, 8]] }, { k: 'line', p: [[154, 157], [154, 8]] }],
+      hl: ['arm', 'torso'],
+    },
+  },
+  {
+    id: 'standing-calf', name: 'Standing Calf Raise (Machine)', muscle: 'Legs', target: 'Calves',
+    equip: 'Machine', type: 'reps', inc: 10, unit: 'lb',
+    cues: ['Balls of your feet on the platform edge, heels hanging off.', 'Lower your heels for a deep stretch.', 'Rise up as high as you can, pause 1 second.', 'Keep your knees soft but still.'],
+    avoid: 'Bouncing — calves grow from slow, full reps.',
+    d: {
+      A: s(ST, { y: 82, ua: 60, fa: -70, ft: -20 }),
+      B: s(ST, { y: 72, ua: 60, fa: -70, ft: 55 }),
+      props: [FLOOR, { k: 'line', p: [[88, 157], [108, 157]], w: 8 }, { k: 'roller', at: 'sh', dy: -5, r: 6, front: true }],
+      hl: ['leg'],
+    },
+  },
+  {
+    id: 'seated-calf', name: 'Tilt Seat Calf (Nautilus)', muscle: 'Legs', target: 'Calves (soleus)',
+    equip: 'Machine', type: 'reps', inc: 10, unit: 'lb',
+    cues: ['Balls of feet on the foot bar, heels off.', 'Release the safety with the red handle.', 'Lower heels slowly, then push up as high as possible.', 'Re-engage the safety before getting out.'],
+    avoid: 'Short, bouncy reps.',
+    d: {
+      A: s(SS, { y: 112, th: 2, sh: 92, ft: -20 }),
+      B: s(SS, { y: 112, th: -6, sh: 84, ft: 35 }),
+      props: [FLOOR, ...SEAT, { k: 'roller', at: 'kn', dy: -6, r: 6, front: true }],
+      hl: ['leg'],
+    },
+  },
+);
+
 // Fit4Less: dumbbells run 5–75 lb in 5 lb steps.
 for (const e of LIBRARY) if (e.equip === 'Dumbbell') { e.unit = 'lb'; e.inc = 5; }
 

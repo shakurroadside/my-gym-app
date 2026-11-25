@@ -18,6 +18,10 @@ if (!S.migr.glute) {
   if (it && !d2.items.some((x) => x.exId === 'glute-drive')) Object.assign(it, { exId: 'glute-drive', sets: 3, repMin: 10, repMax: 12, rest: 90 });
   S.migr.glute = true;
 }
+if (!S.migr.curl) {
+  for (const d of S.program?.days || []) for (const x of d.items) if (x.exId === 'seated-leg-curl') x.exId = 'lying-leg-curl';
+  S.migr.curl = true;
+}
 let saveT = 0;
 const commit = (now = false) => {
   clearTimeout(saveT);

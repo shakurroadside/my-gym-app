@@ -277,6 +277,45 @@ export const HOWTO = {
     'Stand tall, feet hip-width, knees soft.',
     'Grip the inner bends of the bar, palms facing up/in.',
   ] },
+  'hack-squat': { p: ['quads'], s: ['glutes', 'hams'], setup: [
+    'Empty sled = about 80 lb of resistance. Log only the plates you add.',
+    'Back flat on the pad, shoulders under the shoulder pads.',
+    'Feet shoulder-width in the middle of the plate, toes slightly out.',
+    'Hold the side handles and release the safety lever.',
+  ] },
+  'belt-squat': { p: ['quads', 'glutes'], s: ['hams'], setup: [
+    'Load plates on the pegs; clip the belt chain to the lever arm.',
+    'Fasten the belt around your hips (below your belly button).',
+    'Stand on the platform, feet a little wider than shoulders.',
+    'Stand up to take the weight, then release the start handle.',
+  ] },
+  'bb-squat': { p: ['quads', 'glutes'], s: ['abs', 'lowback', 'hams'], setup: [
+    'Set the J-hooks at mid-chest height and the safety arms just below your lowest squat.',
+    'Empty Olympic bar = 45 lb. Start with just the bar to learn the movement.',
+    'Duck under, bar across your upper back, grip just outside shoulders.',
+    'Step back 2 small steps, feet shoulder-width, toes slightly out.',
+  ] },
+  'trap-bar-deadlift': { p: ['glutes', 'hams'], s: ['quads', 'lowback', 'traps', 'forearm'], setup: [
+    'The hex bar is in the bar rack by the functional area. Load plates on both ends.',
+    'Step inside, feet hip-width, handles in line with your ankle bones.',
+    'Push hips back, bend knees, grab the handles at their middle.',
+    'Chest up, back flat, arms straight — then push the floor away.',
+  ] },
+  'pull-up': { p: ['lats'], s: ['biceps', 'midback', 'abs'], setup: [
+    'Use the bar on top of the half rack (step on a box if you can\'t reach).',
+    'Grip a little wider than shoulders, palms facing away.',
+    'Hang with straight arms, shoulders pulled down from your ears.',
+  ] },
+  'standing-calf': { p: ['calves'], s: [], setup: [
+    'Adjust the shoulder pads so you must bend your knees slightly to get under them.',
+    'Balls of your feet on the platform edge, heels hanging off.',
+    'Stand up to lift the weight, knees soft.',
+  ] },
+  'seated-calf': { p: ['calves'], s: [], setup: [
+    'Empty machine = about 35 lb. Load plates on the peg.',
+    'Sit, balls of your feet on the foot bar.',
+    'Adjust the knee pad so it presses snugly on your lower thighs.',
+  ] },
 };
 
 export function breathing(ex) {
