@@ -26,7 +26,7 @@ export function suggest(ex, item, history) {
       return { kind: 'new', reps: item.repMin, msg: `First time: aim for ${item.repMin}–${item.repMax} clean reps. Note how many you get.` };
     return {
       kind: 'new', reps: item.repMax,
-      msg: `First time: pick a weight you could lift about ${item.repMax + 2} times. Stop each set with 1–2 reps left.`,
+      msg: `First time: pick a weight you could lift about ${item.repMax + 2} times. Stop each set with 2–3 reps left.`,
     };
   }
 

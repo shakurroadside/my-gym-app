@@ -331,3 +331,8 @@ details.tip summary { font-weight: 700; cursor: pointer; color: var(--accent); }
 .gym-box small { display: block; color: var(--muted); margin-top: 2px; }
 .gym-box.warnbox { background: color-mix(in srgb, var(--down) 12%, var(--card2)); }
 .tag.q { background: color-mix(in srgb, var(--down) 25%, transparent); color: var(--down); }
+
+.tag.ss { background: var(--card2); color: var(--accent); border: 1px solid var(--accent); }
+.phase { border-radius: 12px; padding: 10px 12px; margin-bottom: 12px; background: color-mix(in srgb, var(--accent) 14%, var(--card2)); }
+.phase small { display: block; color: var(--muted); margin-top: 2px; }
+.phase.deload { background: color-mix(in srgb, var(--down) 16%, var(--card2)); }

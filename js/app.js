@@ -1,6 +1,6 @@
 import { LIBRARY, LIB, MUSCLES } from './exercises.js';
 import { svg, animate } from './diagram.js';
-import { WHY, SCHEDULE, targets, defaultProgram } from './program.js';
+import { WHY, SCHEDULE, targets, defaultProgram, phase } from './program.js';
 import { load, save, defaults, requestPersist, putPhoto, delPhoto, allPhotos, getPhoto, resizeImage, exportAll, importAll } from './store.js';
 import { suggest, entryStats, workingSets, uid, dayKey, startOfWeek, fmtDate, fmtDur, fmtClock, fmtW, esc, toKg, e1rm } from './logic.js';
 import { lineChart } from './charts.js';
@@ -12,6 +12,11 @@ import { getKey, setKey, estimatePlate, extractRecipe } from './ai.js';
 
 let S = load();
 S.migr = S.migr || {};
+if (!S.migr.v2plan) {
+  S.program = defaultProgram();
+  S.nextDay = 0;
+  S.migr.v2plan = true;
+}
 if (!S.migr.glute) {
   const d2 = S.program?.days?.find((d) => d.id === 'd2');
   const it = d2?.items.find((x) => x.exId === 'leg-extension');
@@ -166,6 +171,7 @@ function vToday() {
   </section>
 
   <section class="card">
+    ${(() => { const ph = phase(S.program.start); return `<div class="phase ${ph.name.toLowerCase()}"><b>Block ${ph.block} · Week ${ph.week} of 7 · ${ph.name}</b><small>${ph.msg}</small></div>`; })()}
     <div class="split"><div><p class="eyebrow">This week</p><h3>${wkCount} / ${P.days.length} workouts</h3></div></div>
     <div class="dots">${weekDots()}</div>
   </section>
@@ -193,14 +199,31 @@ function vPlan() {
   <button class="btn ghost" data-act="add-day">${icon('plus')} Add a day</button>`;
 }
 
+function ssLabels(items) {
+  const count = {}, seen = {};
+  for (const x of items) if (x.ss) count[x.ss] = (count[x.ss] || 0) + 1;
+  return items.map((x) => {
+    if (!x.ss) return '';
+    seen[x.ss] = (seen[x.ss] || 0) + 1;
+    return count[x.ss] > 1 ? x.ss + seen[x.ss] : x.ss;
+  });
+}
+const ssTag = (l) => (l ? `<em class="tag ss">${l}</em> ` : '');
+function estMin(d) {
+  let sec = (d.warmup?.min || 0) * 60 + (d.finisher?.min || 0) * 60 + 240;
+  for (const x of d.items) sec += x.sets * ((getEx(x.exId)?.type === 'time' ? x.repMax * (getEx(x.exId)?.perSide ? 2 : 1) : 40 * (getEx(x.exId)?.perSide ? 2 : 1)) + x.rest + 15);
+  return Math.round(sec / 300) * 5;
+}
+
 function planDay(d, di) {
+  const L = ssLabels(d.items);
   const editing = ui.editDay === d.id;
   const next = di === S.nextDay % S.program.days.length;
   const rows = d.items.map((x, ii) => {
     const ex = getEx(x.exId);
     const u = ex?.type === 'time' ? 's' : '';
     if (!editing)
-      return `<li><button class="link" data-act="ex-detail" data-id="${x.exId}">${svg(diagramOf(ex), 1, 'thumb')}<span><b>${esc(ex?.name || x.exId)}${ex && !ex.gym && !ex.custom ? ' <em class="tag q">not seen yet</em>' : ''}</b><small>${x.sets} sets × ${x.repMin}–${x.repMax}${u}${ex?.perSide ? ' each side' : ''} · rest ${x.rest}s</small></span></button></li>`;
+      return `<li><button class="link" data-act="ex-detail" data-id="${x.exId}">${svg(diagramOf(ex), 1, 'thumb')}<span><b>${ssTag(L[ii])}${esc(ex?.name || x.exId)}${ex && !ex.gym && !ex.custom ? ' <em class="tag q">not seen yet</em>' : ''}</b><small>${x.sets} sets × ${x.repMin}–${x.repMax}${u}${ex?.perSide ? ' each side' : ''} · rest ${x.rest}s</small></span></button></li>`;
     return `<li class="edit-row">
       <div class="split"><b>${esc(ex?.name || x.exId)}</b><span class="tools">
         <button class="ib" data-act="it-move" data-d="${di}" data-i="${ii}" data-dir="-1" aria-label="Move up">${icon('up')}</button>
@@ -220,7 +243,7 @@ function planDay(d, di) {
       <button class="btn sm ${editing ? 'primary' : ''}" data-act="edit-day" data-id="${d.id}">${editing ? 'Done' : 'Edit'}</button>
     </div>
     ${editing ? `<div class="edit-fields two"><label>Warm-up walk (min)<input type="number" inputmode="numeric" data-in="cardio" data-d="${di}" data-f="warmup" value="${d.warmup?.min ?? 0}"></label><label>Incline walk after (min)<input type="number" inputmode="numeric" data-in="cardio" data-d="${di}" data-f="finisher" value="${d.finisher?.min ?? 0}"></label></div>`
-      : `<p class="muted small">🏃 ${d.warmup?.min ? `${d.warmup.min} min treadmill warm-up` : 'No warm-up'}${d.finisher?.min ? ` · ${d.finisher.min} min incline walk after` : ''}</p>`}
+      : `<p class="muted small">⏱ ≈ ${estMin(d)} min · 🏃 ${d.warmup?.min ? `${d.warmup.min} min warm-up walk` : 'No warm-up'}${d.finisher?.min ? ` · ${d.finisher.min} min incline walk after` : ''}</p>${d.items.some((x) => x.ss && L.some((l) => l.endsWith('2'))) ? '<p class="muted small">Same letter = superset: do 1, then 2 right away, then rest. Repeat for all sets.</p>' : ''}`}
     <ul class="plan-list">${rows}</ul>
     ${editing ? `<div class="btn-row"><button class="btn sm" data-act="it-add" data-d="${di}">${icon('plus')} Add exercise</button><button class="btn sm" data-act="set-next" data-d="${di}">Make next</button><button class="btn sm danger" data-act="day-del" data-d="${di}">Delete day</button></div>` : ''}
   </section>`;
@@ -801,13 +824,13 @@ function vWorkout() {
   </header>
   <div class="bar thin"><span style="width:${total ? (done / total) * 100 : 0}%"></span></div>
   ${cardioCard(A.warm, 'warm', 'Warm-up')}
-  ${A.entries.map((e, i) => exCard(e, i)).join('')}
+  ${(() => { const L = ssLabels(A.entries.map((e) => e.item)); return A.entries.map((e, i) => exCard(e, i, L[i])).join(''); })()}
   ${cardioCard(A.fin, 'fin', 'Fat-burn finisher')}
   <button class="btn ghost" data-act="wk-add">${icon('plus')} Add exercise</button>
   <button class="btn ghost danger" data-act="discard">Discard workout</button>`;
 }
 
-function exCard(e, i) {
+function exCard(e, i, lbl = '') {
   const ex = getEx(e.exId);
   const hist = history(e.exId);
   const prev = hist.find((h) => workingSets(h).length);
@@ -832,7 +855,7 @@ function exCard(e, i) {
   const sugCls = e.sug?.kind === 'up' ? 'up' : e.sug?.kind === 'down' ? 'down' : '';
   return `<section class="card ex ${allDone ? 'is-done' : ''}" id="ex-${i}">
     <div class="ex-head">
-      <button class="link" data-act="ex-detail" data-id="${e.exId}">${svg(diagramOf(ex), 1, 'thumb')}<span><b>${esc(ex.name)}</b><small>${e.item.sets} × ${e.item.repMin}–${e.item.repMax}${isTime ? 's' : ''}${ex.perSide ? ' each side' : ''} · rest ${e.item.rest}s</small></span></button>
+      <button class="link" data-act="ex-detail" data-id="${e.exId}">${svg(diagramOf(ex), 1, 'thumb')}<span><b>${ssTag(lbl)}${esc(ex.name)}</b><small>${lbl.endsWith('1') ? 'Superset → go straight to ' + lbl.slice(0, -1) + '2 · ' : ''}${e.item.sets} × ${e.item.repMin}–${e.item.repMax}${isTime ? 's' : ''}${ex.perSide ? ' each side' : ''} · rest ${e.item.rest}s</small></span></button>
       <div class="tools"><button class="ib" data-act="ex-detail" data-id="${e.exId}" aria-label="How to">${icon('info')}</button><button class="ib" data-act="wk-swap" data-i="${i}" aria-label="Swap">${icon('swap')}</button><button class="ib" data-act="wk-del" data-i="${i}" aria-label="Remove">${icon('x')}</button></div>
     </div>
     ${e.sug?.msg ? `<p class="sug ${sugCls}">${esc(e.sug.msg)}</p>` : ''}
