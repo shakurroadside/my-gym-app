@@ -18,6 +18,12 @@ if (!S.migr.glute) {
   if (it && !d2.items.some((x) => x.exId === 'glute-drive')) Object.assign(it, { exId: 'glute-drive', sets: 3, repMin: 10, repMax: 12, rest: 90 });
   S.migr.glute = true;
 }
+if (!S.migr.delt) {
+  const d1 = S.program?.days?.find((d) => d.id === 'd1');
+  const it = d1?.items.find((x) => x.exId === 'lateral-raise');
+  if (it) it.exId = 'machine-lateral-raise';
+  S.migr.delt = true;
+}
 if (!S.migr.curl) {
   for (const d of S.program?.days || []) for (const x of d.items) if (x.exId === 'seated-leg-curl') x.exId = 'lying-leg-curl';
   S.migr.curl = true;

@@ -316,6 +316,16 @@ export const HOWTO = {
     'Sit, balls of your feet on the foot bar.',
     'Adjust the knee pad so it presses snugly on your lower thighs.',
   ] },
+  'machine-lateral-raise': { p: ['sdelt'], s: ['traps'], setup: [
+    'Red handle under the seat: set the height so your shoulders line up with the machine\'s pivot (red dot).',
+    'Sit tall, chest against the front pad.',
+    'Upper arms against the side pads, hands holding the handles lightly.',
+  ] },
+  'assisted-dip': { p: ['chest', 'triceps'], s: ['fdelt'], setup: [
+    'Same Nautilus Chin/Dip Assist machine — use the lower, angled dip handles.',
+    'Pick the assistance: start around half your body weight (≈ 90 lb).',
+    'Step up, grab the dip handles, then kneel on the pad with arms straight.',
+  ] },
 };
 
 export function breathing(ex) {

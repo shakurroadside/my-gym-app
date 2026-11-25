@@ -16,7 +16,7 @@ export function defaultProgram() {
           it('machine-chest-press', 3, 8, 12, 120),
           it('incline-db-press', 3, 8, 12, 90),
           it('machine-shoulder-press', 3, 8, 12, 90),
-          it('lateral-raise', 3, 12, 15, 60),
+          it('machine-lateral-raise', 3, 12, 15, 60),
           it('cable-pushdown', 3, 10, 15, 60),
           it('cable-crunch', 3, 10, 15, 60),
           it('plank', 3, 30, 60, 45),

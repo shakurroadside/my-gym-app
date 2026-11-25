@@ -685,6 +685,33 @@ LIBRARY.push(
   },
 );
 
+LIBRARY.push(
+  {
+    id: 'machine-lateral-raise', name: 'Deltoid Raise (Machine)', muscle: 'Shoulders', target: 'Side shoulders (width)',
+    equip: 'Machine', type: 'reps', unit: 'lb', inc: 10,
+    cues: ['Lead with your elbows — push the pads out and up.', 'Stop when your upper arms are level with your shoulders.', 'Pause 1 second at the top.', 'Lower slowly (2–3 seconds).'],
+    avoid: 'Shrugging your shoulders up toward your ears.',
+    d: {
+      A: s(FSE, { ua: 82, fa: 80, fas: 0.4 }),
+      B: s(FSE, { ua: -2, fa: 60, fas: 0.4 }),
+      props: [FLOOR, ...FSEAT, { k: 'roller', at: 'elR', r: 5, front: true }, { k: 'roller', at: 'elL', r: 5, front: true }],
+      hl: ['shoulder', 'arm'],
+    },
+  },
+  {
+    id: 'assisted-dip', name: 'Assisted Dip (Machine)', muscle: 'Chest', target: 'Lower chest, triceps, front shoulders',
+    equip: 'Machine', type: 'reps', unit: 'lb', inc: 10, assisted: true,
+    cues: ['Kneel on the pad, hands on the dip handles, arms straight.', 'Lean slightly forward and lower until elbows are about 90°.', 'Press back up to straight arms.', 'More weight on the stack = MORE help (easier).'],
+    avoid: 'Going so deep that your shoulders hurt — stop at 90°.',
+    d: {
+      A: { v: 'f', x: 100, y: 92, ua: 94, fa: 90, th: 88, sh: 90, shs: 0.35 },
+      B: { v: 'f', x: 100, y: 112, ua: 20, uas: 0.6, fa: 100, th: 88, sh: 90, shs: 0.35 },
+      props: [{ k: 'line', p: [[62, 100], [92, 100]], w: 5 }, { k: 'line', p: [[108, 100], [138, 100]], w: 5 }, { k: 'line', p: [[46, 157], [46, 10]] }, { k: 'line', p: [[154, 157], [154, 10]] }, { k: 'mid', a: 'anL', b: 'anR', dy: 4, ext: 8, w: 6 }],
+      hl: ['arm', 'torso'],
+    },
+  },
+);
+
 // Fit4Less: dumbbells run 5–75 lb in 5 lb steps.
 for (const e of LIBRARY) if (e.equip === 'Dumbbell') { e.unit = 'lb'; e.inc = 5; }
 

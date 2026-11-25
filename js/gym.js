@@ -4,7 +4,16 @@ const STACK = 'Weight stack is in lb. Use the small 5 lb add-on weight beside th
 export const GYM_NAME = 'Fit4Less · Edmonton North';
 
 // exId → where to do it + gym-specific tip. Units/jumps default from here unless you change them.
+const LNL = 'Inspiration machine with Lock N Load: flip the plate you want to ON, all others OFF.';
 export const GYM = {
+  'machine-chest-press': { where: 'Nautilus Inspiration Chest Press', unit: 'lb', inc: 10, tip: 'Red bar at the seat base sets height — upper arms level with the floor when holding the handles. Red knobs on the arms set the start stretch. ' + LNL },
+  'machine-row': { where: 'Nautilus Inspiration Row', unit: 'lb', inc: 10, tip: 'Seat height: chest pad at mid-chest. Red knob moves the pad for the start stretch. Pull until the grips are level with your torso. ' + LNL },
+  'preacher-curl-machine': { where: 'Nautilus Inspiration Bilateral Arm Curl', unit: 'lb', inc: 10, tip: 'Set the seat so your upper arms lie flat on the pad and elbows line up with the red pivot dot. ' + LNL },
+  'machine-lateral-raise': { where: 'Nautilus Inspiration Deltoid Raise', unit: 'lb', inc: 10, tip: 'Shoulders in line with the red pivot dot. ' + LNL },
+  'seated-leg-curl': { where: 'Nautilus Inspiration Leg Curl (seated)', unit: 'lb', inc: 10, tip: 'Knees in line with the red pivot dot, thigh pad snug. ' + LNL },
+  'ab-crunch-machine': { where: 'Nautilus Inspiration Ab Crunch', unit: 'lb', inc: 10, tip: 'Set the seat so the axis lines up with your belly button. Hands on the upper handles, elbows forward. ' + LNL },
+  'assisted-pullup': { where: 'Nautilus Impact Chin / Dip Assist', unit: 'lb', inc: 10, tip: 'More stack weight = more help. Upper handles for pull-ups; kneel on the pad.' },
+  'assisted-dip': { where: 'Nautilus Impact Chin / Dip Assist', unit: 'lb', inc: 10, tip: 'Lower angled handles for dips. Lower the assistance as you get stronger.' },
   'glute-drive': { where: 'Nautilus Glute Drive (plate-loaded)', unit: 'lb', inc: 10, tip: 'Plates go on the side pegs: 45, 35, 25 lb. Add 5 lb per side = 10 lb jump.' },
   'lat-pulldown': { where: 'Nautilus Multi Station — Lat Pulldown', unit: 'lb', inc: 10, tip: 'Lock your thighs under the pad (red pop-pin adjusts it). ' + STACK },
   'seated-cable-row': { where: 'Nautilus Multi Station — Low Row', unit: 'lb', inc: 10, tip: 'Feet on the foot plates. ' + STACK },
@@ -17,7 +26,7 @@ export const GYM = {
   'cable-fly': { where: 'Inspiration cable tower (both pulleys high)', unit: 'lb', inc: 10, tip: 'Set both pulleys to the same high hole. ' + STACK },
   'cable-lateral-raise': { where: 'Inspiration cable tower (pulley at bottom)', unit: 'lb', inc: 10, tip: STACK },
   'leg-press': { where: 'Nautilus Angled Leg Press (plate-loaded)', unit: 'lb', inc: 20, tip: 'The empty sled already counts as 100 lb of resistance — log only the plates you add. Twist both red handles to release the safety stops; lock them again before getting out.' },
-  'leg-extension': { where: 'Inspiration Leg Extension', unit: 'lb', inc: 10, tip: 'Red handle behind the back pad lines your knees up with the pivot. Handle beside the seat moves the roller to just above your ankles.' },
+  'leg-extension': { where: 'Nautilus Inspiration Leg Extension', unit: 'lb', inc: 10, tip: 'Red handle behind the back pad lines your knees up with the pivot. Handle beside the seat moves the roller to just above your ankles.' },
   'lying-leg-curl': { where: 'Nautilus Impact Leg Curl (lying)', unit: 'lb', inc: 10, tip: 'Knees in line with the pivot point. Red knob moves the roller to just above your heels. Hold the handles.' },
   'hack-squat': { where: 'Nautilus Hack Squat (plate-loaded)', unit: 'lb', inc: 20, tip: 'Empty sled counts as about 80 lb. Add plates in pairs (10 lb each side = 20 lb jump).' },
   'belt-squat': { where: 'Nautilus Belt Squat (plate-loaded)', unit: 'lb', inc: 20, tip: 'Clip the belt chain to the arm; load plates in pairs.' },
