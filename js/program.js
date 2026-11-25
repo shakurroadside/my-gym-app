@@ -24,7 +24,7 @@ export function defaultProgram() {
           it('lat-pulldown', 3, 8, 12, 90, 'B'),
           it('machine-lateral-raise', 4, 12, 15, 30, 'C'),
           it('cable-pushdown', 3, 10, 15, 60, 'C'),
-          it('cable-crunch', 3, 10, 15, 30, 'D'),
+          it('ab-crunch-machine', 3, 10, 15, 30, 'D'),
           it('side-plank', 2, 20, 45, 45, 'D'),
         ],
       },
@@ -96,3 +96,10 @@ export function targets(profile, currentKg, adj = 0) {
   const weeks = Math.ceil(toLose / 0.5);
   return { bmr: Math.round(bmr), tdee: Math.round(tdee), base, adj: adj || 0, floor, kcal, protein, fat, carbs, toLose, weeks };
 }
+
+// Long-term roadmap shown on the Plan screen.
+export const ROADMAP = [
+  { id: 'p1', title: 'Phase 1 · Fat loss — Block 1', when: 'Weeks 1–7', text: 'Machines + dumbbells, trap-bar deadlift as your one heavy free-weight lift. Calorie deficit.' },
+  { id: 'p1b', title: 'Phase 1 · Fat loss — Block 2', when: 'From week 8', text: 'Barbell back squat comes back on Friday (half rack, safety arms set, 8–10 reps, 2–3 in reserve). Everything else stays.' },
+  { id: 'p2', title: 'Phase 2 · Strength', when: 'When you reach your goal weight', text: 'Calories up to maintenance. New plan built around barbell squat, bench and deadlift + your favourite machines. Core every session.' },
+];

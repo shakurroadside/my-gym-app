@@ -347,3 +347,10 @@ details.tip summary { font-weight: 700; cursor: pointer; color: var(--accent); }
 .ci-card { width: 100%; text-align: left; display: block; }
 .ci-card small { display: block; }
 .ci-card.due { border-color: var(--accent); }
+
+.road { list-style: none; padding: 0; margin: 10px 0 0; border-left: 2px solid var(--line); }
+.road li { position: relative; padding: 4px 0 12px 16px; }
+.road li::before { content: ''; position: absolute; left: -7px; top: 8px; width: 12px; height: 12px; border-radius: 50%; background: var(--line); }
+.road li.now::before { background: var(--accent); }
+.road small { display: block; color: var(--muted); }
+.road p { margin: 4px 0 0; font-size: 14px; color: var(--muted); }

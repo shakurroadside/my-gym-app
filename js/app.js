@@ -1,6 +1,6 @@
 import { LIBRARY, LIB, MUSCLES } from './exercises.js';
 import { svg, animate } from './diagram.js';
-import { WHY, SCHEDULE, targets, defaultProgram, phase } from './program.js';
+import { WHY, SCHEDULE, targets, defaultProgram, phase, ROADMAP } from './program.js';
 import { load, save, defaults, requestPersist, putPhoto, delPhoto, allPhotos, getPhoto, resizeImage, exportAll, importAll } from './store.js';
 import { roundTo, suggest, entryStats, workingSets, uid, dayKey, startOfWeek, fmtDate, fmtDur, fmtClock, fmtW, esc, toKg, e1rm } from './logic.js';
 import { lineChart } from './charts.js';
@@ -12,6 +12,11 @@ import { getKey, setKey, estimatePlate, extractRecipe } from './ai.js';
 
 let S = load();
 S.migr = S.migr || {};
+// Swap kneeling cable crunch → Ab Crunch machine (user preference)
+if (!S.migr.nocc) {
+  for (const d of S.program?.days || []) for (const x of d.items) if (x.exId === 'cable-crunch') x.exId = 'ab-crunch-machine';
+  S.migr.nocc = true;
+}
 if (!S.migr.v3plan) {
   S.program = defaultProgram();
   S.nextDay = 0;
@@ -45,6 +50,19 @@ if (!S.migr.curl) {
   for (const d of S.program?.days || []) for (const x of d.items) if (x.exId === 'seated-leg-curl') x.exId = 'lying-leg-curl';
   S.migr.curl = true;
 }
+// Block 2 (week 8+): barbell back squat replaces goblet squat on Friday.
+function applyBlock2() {
+  if (S.migr.block2 || !S.program?.start) return false;
+  if (phase(S.program.start).block < 2) return false;
+  const d = S.program.days.find((x) => x.id === 'f3');
+  const it = d?.items.find((x) => x.exId === 'goblet-squat');
+  if (it) Object.assign(it, { exId: 'bb-squat', sets: 3, repMin: 8, repMax: 10, rest: 60 });
+  const row = d?.items.find((x) => x.exId === 'machine-row');
+  if (row) row.rest = 120;
+  S.migr.block2 = true;
+  return true;
+}
+const block2Started = applyBlock2();
 let saveT = 0;
 const commit = (now = false) => {
   clearTimeout(saveT);
@@ -202,8 +220,16 @@ function vPlan() {
   <header class="top"><div><p class="eyebrow">Your program</p><h1>${esc(P.name)}</h1></div></header>
   <p class="muted pad">${SCHEDULE}</p>
   ${P.days.map((d, di) => planDay(d, di)).join('')}
+  ${roadmapCard()}
   <details class="card why"><summary><b>Why this plan fits you</b></summary>${WHY.map(([h, t]) => `<h4>${h}</h4><p>${t}</p>`).join('')}</details>
   <button class="btn ghost" data-act="add-day">${icon('plus')} Add a day</button>`;
+}
+
+function roadmapCard() {
+  const atGoal = latestWeight() <= S.profile.goalWeight;
+  const cur = atGoal ? 'p2' : S.migr.block2 ? 'p1b' : 'p1';
+  return `<section class="card"><h3>🗺 Your roadmap</h3><ol class="road">${ROADMAP.map((r) => `<li class="${r.id === cur ? 'now' : ''}"><b>${r.title}${r.id === cur ? ' · <span class="accent">you are here</span>' : ''}</b><small>${r.when}</small><p>${r.text}</p></li>`).join('')}</ol>
+    ${atGoal ? '<p class="badge up">🎉 Goal weight reached — ask your coach to build your Strength phase.</p>' : ''}</section>`;
 }
 
 function ssLabels(items) {
@@ -1748,4 +1774,5 @@ document.addEventListener('focusin', (ev) => { if (ev.target.matches('.set-row i
 requestPersist();
 if (S.active) wake(true);
 render(true);
+if (block2Started) { commit(true); setTimeout(() => toast('Block 2 starts: barbell squat is back on Friday 💪'), 600); }
 if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('./sw.js').catch(() => {});
