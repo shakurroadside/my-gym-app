@@ -13,6 +13,12 @@ import { getKey, setKey, estimatePlate, extractRecipe } from './ai.js';
 let S = load();
 S.migr = S.migr || {};
 // Swap kneeling cable crunch → Ab Crunch machine (user preference)
+// Rename workouts A/B/C with a suggested weekday (the app follows the order, not the calendar)
+if (!S.migr.abc) {
+  const N = { f1: ['Workout A · Full Body (Chest focus)', 1], f2: ['Workout B · Back & Hinge', 3], f3: ['Workout C · Core first + Conditioning', 5] };
+  for (const d of S.program?.days || []) if (N[d.id]) { d.name = N[d.id][0]; d.day = N[d.id][1]; }
+  S.migr.abc = true;
+}
 if (!S.migr.nocc) {
   for (const d of S.program?.days || []) for (const x of d.items) if (x.exId === 'cable-crunch') x.exId = 'ab-crunch-machine';
   S.migr.nocc = true;
@@ -193,8 +199,15 @@ function vToday() {
   ${S.active ? `<button class="card resume" data-act="nav" data-to="workout"><span class="pulse"></span><div><b>Workout in progress</b><small>${esc(S.active.dayName)} · started ${fmtDur(Date.now() - S.active.start)} ago</small></div><span class="chev">Resume ›</span></button>` : ''}
 
   ${day ? `<section class="card next">
-    <p class="eyebrow">Next workout</p>
+    <p class="eyebrow">Next up</p>
     <h2>${esc(day.name)}</h2>
+    ${day.day != null ? (() => {
+      const W = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const td = new Date().getDay();
+      const doneToday = S.workouts.some((w) => dayKey(w.start) === dayKey(Date.now()));
+      const msg = doneToday ? '✅ Done for today — rest and recover.' : td === day.day ? '📅 Scheduled for today' : `Suggested: ${W[day.day]} · fine to do it today if you missed it`;
+      return `<p class="muted small">${msg}</p>`;
+    })() : ''}
     <p class="muted">${day.items.length} exercises${day.warmup?.min ? ` · ${day.warmup.min} min warm-up` : ''}${day.finisher?.min ? ` · ${day.finisher.min} min incline walk` : ''}</p>
     ${ups ? `<p class="badge up">⬆ ${ups} weight increase${ups > 1 ? 's' : ''} ready</p>` : ''}
     <ul class="mini-list">${day.items.map((x) => `<li>${esc(getEx(x.exId)?.name || x.exId)} <span>${x.sets}×${x.repMin}–${x.repMax}${getEx(x.exId)?.type === 'time' ? 's' : ''}</span></li>`).join('')}</ul>

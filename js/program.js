@@ -16,7 +16,7 @@ export function defaultProgram() {
     start: Date.now(),
     days: [
       {
-        id: 'f1', name: 'Mon · Full Body A (Chest focus)',
+        id: 'f1', name: 'Workout A · Full Body (Chest focus)', day: 1,
         warmup: walk(5), finisher: walk(20),
         items: [
           it('db-bench-press', 3, 6, 10, 150, 'A'),
@@ -29,7 +29,7 @@ export function defaultProgram() {
         ],
       },
       {
-        id: 'f2', name: 'Wed · Full Body B (Back & Hinge)',
+        id: 'f2', name: 'Workout B · Back & Hinge', day: 3,
         warmup: walk(5), finisher: walk(15),
         items: [
           it('trap-bar-deadlift', 3, 6, 8, 150, 'A'),
@@ -42,7 +42,7 @@ export function defaultProgram() {
         ],
       },
       {
-        id: 'f3', name: 'Fri · Full Body C (Core first + Conditioning)',
+        id: 'f3', name: 'Workout C · Core first + Conditioning', day: 5,
         warmup: walk(5), finisher: walk(10),
         items: [
           it('pallof-press', 3, 10, 12, 30, 'A'),
@@ -71,7 +71,7 @@ export const WHY = [
   ['7 · Cardio that works with a diet', '5 min warm-up, incline walk after every session (20 / 15 / 10 min), plus a sled + battle-rope finisher on Friday. Daily steps (8–10k) burn more than any single cardio session — walk on rest days.'],
 ];
 
-export const SCHEDULE = 'Your week: Mon · Wed · Fri (a rest day between each). Can\'t make one? Do it the next day — just keep 1 rest day between sessions. Walk 30–45 min on Tue/Thu/weekend.';
+export const SCHEDULE = 'Your week: Workout A Monday · B Wednesday · C Friday (a rest day between each). The app follows the order A → B → C, not the calendar. Can\'t make one? Do it the next day — just keep 1 rest day between sessions. Walk 30–45 min on Tue/Thu/weekend.';
 
 export function phase(start) {
   const wk = Math.floor((Date.now() - (start || Date.now())) / 6048e5) % 7; // 7-week blocks
