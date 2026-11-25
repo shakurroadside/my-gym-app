@@ -7,9 +7,17 @@ import { lineChart } from './charts.js';
 import { bodyMap, MUSCLE_NAMES } from './bodymap.js';
 import { HOWTO, breathing, tempo } from './howto.js';
 import { FOODS, FOOD, FOOD_CATS, MEALS, MEAL_SLOTS, itemTotals } from './foods.js';
+import { GYM, GYM_NAME } from './gym.js';
 import { getKey, setKey, estimatePlate, extractRecipe } from './ai.js';
 
 let S = load();
+S.migr = S.migr || {};
+if (!S.migr.glute) {
+  const d2 = S.program?.days?.find((d) => d.id === 'd2');
+  const it = d2?.items.find((x) => x.exId === 'leg-extension');
+  if (it && !d2.items.some((x) => x.exId === 'glute-drive')) Object.assign(it, { exId: 'glute-drive', sets: 3, repMin: 10, repMax: 12, rest: 90 });
+  S.migr.glute = true;
+}
 let saveT = 0;
 const commit = (now = false) => {
   clearTimeout(saveT);
@@ -28,7 +36,8 @@ function getEx(id) {
   const base = LIB[id] || S.customEx[id];
   if (!base) return null;
   const ov = S.exOverrides[id] || {};
-  return { ...base, unit: ov.unit || base.unit || 'kg', inc: ov.inc ?? base.inc ?? 0 };
+  const g = GYM[id] || {};
+  return { ...base, gym: g.where ? g : null, unit: ov.unit || g.unit || base.unit || 'kg', inc: ov.inc ?? g.inc ?? base.inc ?? 0 };
 }
 const diagramOf = (ex) => ex?.d || LIB[ex?.like]?.d || LIB.plank.d;
 const allEx = () => [...LIBRARY.map((e) => getEx(e.id)), ...Object.keys(S.customEx).map(getEx)];
@@ -175,7 +184,7 @@ function planDay(d, di) {
     const ex = getEx(x.exId);
     const u = ex?.type === 'time' ? 's' : '';
     if (!editing)
-      return `<li><button class="link" data-act="ex-detail" data-id="${x.exId}">${svg(diagramOf(ex), 1, 'thumb')}<span><b>${esc(ex?.name || x.exId)}</b><small>${x.sets} sets × ${x.repMin}–${x.repMax}${u}${ex?.perSide ? ' each side' : ''} · rest ${x.rest}s</small></span></button></li>`;
+      return `<li><button class="link" data-act="ex-detail" data-id="${x.exId}">${svg(diagramOf(ex), 1, 'thumb')}<span><b>${esc(ex?.name || x.exId)}${ex && !ex.gym && !ex.custom ? ' <em class="tag q">not seen yet</em>' : ''}</b><small>${x.sets} sets × ${x.repMin}–${x.repMax}${u}${ex?.perSide ? ' each side' : ''} · rest ${x.rest}s</small></span></button></li>`;
     return `<li class="edit-row">
       <div class="split"><b>${esc(ex?.name || x.exId)}</b><span class="tools">
         <button class="ib" data-act="it-move" data-d="${di}" data-i="${ii}" data-dir="-1" aria-label="Move up">${icon('up')}</button>
@@ -204,16 +213,16 @@ function planDay(d, di) {
 // ───────────────────────── LIBRARY ─────────────────────────
 function libList() {
   const q = ui.libQ.trim().toLowerCase();
-  const list = allEx().filter((e) => (ui.libM === 'All' || e.muscle === ui.libM) && (!q || (e.name + ' ' + e.target + ' ' + e.equip).toLowerCase().includes(q)));
+  const list = allEx().filter((e) => (ui.libM === 'All' || (ui.libM === 'My gym' ? e.gym || e.custom : e.muscle === ui.libM)) && (!q || (e.name + ' ' + e.target + ' ' + e.equip).toLowerCase().includes(q)));
   if (!list.length) return `<p class="muted pad">No exercises match. Add your own machine below.</p>`;
-  return list.map((e) => `<button class="lib-row" data-act="ex-detail" data-id="${e.id}">${svg(diagramOf(e), 1, 'thumb')}<span><b>${esc(e.name)}${e.custom ? ' <em class="tag">My gym</em>' : ''}</b><small>${esc(e.target || e.muscle)} · ${esc(e.equip)}</small></span></button>`).join('');
+  return list.map((e) => `<button class="lib-row" data-act="ex-detail" data-id="${e.id}">${svg(diagramOf(e), 1, 'thumb')}<span><b>${esc(e.name)}${e.custom || e.gym ? ' <em class="tag">📍</em>' : ''}</b><small>${esc(e.target || e.muscle)} · ${esc(e.equip)}</small></span></button>`).join('');
 }
 
 function vLibrary() {
   return `
   <header class="top"><div><p class="eyebrow">${allEx().length} exercises</p><h1>Exercises</h1></div><button class="btn sm primary" data-act="custom-new">${icon('plus')} My machine</button></header>
   <input class="search" type="search" placeholder="Search exercises or machines" data-in="lib-q" value="${esc(ui.libQ)}">
-  <div class="row-scroll chips">${['All', ...MUSCLES].map((m) => `<button class="chip ${ui.libM === m ? 'on' : ''}" data-act="lib-m" data-m="${m}">${m}</button>`).join('')}</div>
+  <div class="row-scroll chips">${['All', 'My gym', ...MUSCLES].map((m) => `<button class="chip ${ui.libM === m ? 'on' : ''}" data-act="lib-m" data-m="${m}">${m}</button>`).join('')}</div>
   <div id="lib-list" class="card list">${libList()}</div>`;
 }
 
@@ -995,6 +1004,8 @@ async function exDetail(id) {
     <div class="dg-steps"><figure>${svg(d, 0)}<figcaption>1 · Start position</figcaption></figure><figure>${svg(d, 1)}<figcaption>2 · End position</figcaption></figure></div>
     <h2>${esc(ex.name)}</h2>
     <div class="row-wrap"><span class="chip on">${esc(ex.muscle)}</span><span class="chip">${esc(ex.equip)}</span>${ex.perSide ? '<span class="chip">each side</span>' : ''}</div>
+    ${ex.gym ? `<div class="gym-box">📍 <div><b>At your gym:</b> ${esc(ex.gym.where)}${ex.gym.tip ? `<small>${esc(ex.gym.tip)}</small>` : ''}</div></div>`
+      : ex.custom ? '' : `<div class="gym-box warnbox">❓ <div><b>Not seen at ${GYM_NAME} yet.</b><small>Send a photo if you find it — or tap ⇄ in your plan to swap it.</small></div></div>`}
     ${prim.length ? `<h4>Muscles worked</h4><div class="bm-wrap">${bodyMap(prim, sec)}
       <div class="bm-legend"><p><span class="lg p"></span><b>Main:</b> ${prim.map((k) => MUSCLE_NAMES[k]).join(', ')}</p>${sec.length ? `<p><span class="lg s"></span><b>Helping:</b> ${sec.map((k) => MUSCLE_NAMES[k]).join(', ')}</p>` : ''}</div></div>`
       : ex.target ? `<p class="muted">Works: ${esc(ex.target)}</p>` : ''}

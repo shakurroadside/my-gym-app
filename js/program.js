@@ -30,7 +30,7 @@ export function defaultProgram() {
           it('leg-press', 3, 10, 12, 120),
           it('db-rdl', 3, 8, 12, 90),
           it('seated-leg-curl', 3, 10, 15, 60),
-          it('leg-extension', 2, 12, 15, 60),
+          it('glute-drive', 3, 10, 12, 90),
           it('hanging-knee-raise', 3, 8, 15, 60),
           it('dead-bug', 3, 8, 12, 45),
           it('side-plank', 2, 20, 45, 30),

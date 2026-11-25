@@ -1,0 +1,27 @@
+// Your gym: Fit4Less Edmonton North City Centre — what's confirmed from your photos.
+const STACK = 'Weight stack is in lb. Use the small 5 lb add-on weight beside the stack to go up by 5 instead of 10.';
+
+export const GYM_NAME = 'Fit4Less · Edmonton North';
+
+// exId → where to do it + gym-specific tip. Units/jumps default from here unless you change them.
+export const GYM = {
+  'glute-drive': { where: 'Nautilus Glute Drive (plate-loaded)', unit: 'lb', inc: 10, tip: 'Plates go on the side pegs: 45, 35, 25 lb. Add 5 lb per side = 10 lb jump.' },
+  'lat-pulldown': { where: 'Nautilus Multi Station — Lat Pulldown', unit: 'lb', inc: 10, tip: 'Lock your thighs under the pad (red pop-pin adjusts it). ' + STACK },
+  'seated-cable-row': { where: 'Nautilus Multi Station — Low Row', unit: 'lb', inc: 10, tip: 'Feet on the foot plates. ' + STACK },
+  'cable-crunch': { where: 'Multi Station Cable Station (or Inspiration cable tower)', unit: 'lb', inc: 10, tip: 'The Cable Station label shows this exact move (ab crunch). Use the rope. ' + STACK },
+  'cable-curl': { where: 'Multi Station Cable Station', unit: 'lb', inc: 10, tip: 'Pulley at the bottom. ' + STACK },
+  'cable-pushdown': { where: 'Inspiration cable tower (pulley at top)', unit: 'lb', inc: 10, tip: 'Slide the pulley carriage to the top hole. ' + STACK },
+  'face-pull': { where: 'Inspiration cable tower (pulley at face height)', unit: 'lb', inc: 10, tip: 'Pull the pin and slide the pulley to face height; use the rope. ' + STACK },
+  'pallof-press': { where: 'Inspiration cable tower (pulley at chest height)', unit: 'lb', inc: 10, tip: 'Move the pulley to chest height and stand sideways. ' + STACK },
+  'straight-arm-pulldown': { where: 'Inspiration cable tower (pulley at top)', unit: 'lb', inc: 10, tip: STACK },
+  'cable-fly': { where: 'Inspiration cable tower (both pulleys high)', unit: 'lb', inc: 10, tip: 'Set both pulleys to the same high hole. ' + STACK },
+  'cable-lateral-raise': { where: 'Inspiration cable tower (pulley at bottom)', unit: 'lb', inc: 10, tip: STACK },
+  'bb-bench': { where: 'Olympic flat bench', unit: 'lb', inc: 10, tip: 'Bar = 45 lb. Plates: 45, 35, 25 (+ smaller on the trees). No safety bars — keep 2 reps in reserve or ask for a spot.' },
+  'bb-incline': { where: 'Olympic incline bench', unit: 'lb', inc: 10, tip: 'Bar = 45 lb. Adjust the seat so the bar sits above your face.' },
+  'ez-curl': { where: 'Fixed EZ-bar rack (next to the dumbbells)', unit: 'lb', inc: 10, tip: 'Weight is printed on each bar end. Go up one bar when the app says so.' },
+};
+for (const id of ['db-bench-press', 'incline-db-press', 'db-row', 'db-shoulder-press', 'lateral-raise', 'overhead-triceps', 'db-curl', 'hammer-curl', 'goblet-squat', 'db-rdl', 'db-lunge']) {
+  GYM[id] = { where: 'Dumbbell rack (5–75 lb) + adjustable bench', unit: 'lb', inc: 5, tip: 'Dumbbells go up in 5 lb steps.' };
+}
+for (const id of ['treadmill-incline-walk', 'treadmill-run']) GYM[id] = { where: 'Cardio area treadmills', tip: '' };
+for (const id of ['plank', 'side-plank', 'dead-bug', 'lying-leg-raise', 'reverse-crunch', 'mountain-climber', 'push-up']) GYM[id] = { where: 'Stretching / floor area (grab a mat)', tip: '' };

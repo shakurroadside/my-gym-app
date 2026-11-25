@@ -253,6 +253,30 @@ export const HOWTO = {
     'Start walking, then raise speed to an easy jog.',
     'Stand tall with a slight forward lean from the ankles.',
   ] },
+  'glute-drive': { p: ['glutes'], s: ['hams', 'quads'], setup: [
+    'Load plates on the side pegs (start with just one 25 lb plate per side).',
+    'Sit on the seat with your upper back against the back pad, shoulder blades on its edge.',
+    'Swing the hip pad over and settle it across your hip bones (not your stomach).',
+    'Feet flat on the platform, hip-width, shins vertical at the top position.',
+    'Release the safety/start lever before your first rep.',
+  ] },
+  'bb-bench': { p: ['chest'], s: ['fdelt', 'triceps'], setup: [
+    'Empty Olympic bar = 45 lb. Start with just the bar or small plates.',
+    'Lie down with your eyes directly under the bar.',
+    'Grip a little wider than shoulders, wrists straight over elbows.',
+    'Feet flat, shoulder blades squeezed together and down, small arch in lower back.',
+  ] },
+  'bb-incline': { p: ['chest'], s: ['fdelt', 'triceps'], setup: [
+    'Empty Olympic bar = 45 lb.',
+    'Adjust the seat so the bar is right above your face when you sit back.',
+    'Grip slightly wider than shoulders.',
+    'Feet flat, shoulder blades back and down.',
+  ] },
+  'ez-curl': { p: ['biceps'], s: ['forearm'], setup: [
+    'Pick a fixed EZ bar from the rack — the weight is printed on the end (lb).',
+    'Stand tall, feet hip-width, knees soft.',
+    'Grip the inner bends of the bar, palms facing up/in.',
+  ] },
 };
 
 export function breathing(ex) {

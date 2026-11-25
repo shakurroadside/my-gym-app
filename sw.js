@@ -1,8 +1,8 @@
 // Offline support: serve from cache instantly, refresh the cache in the background.
-const CACHE = 'mygym-v6';
+const CACHE = 'mygym-v7';
 const FILES = [
   './', './index.html', './css/app.css', './manifest.webmanifest',
-  './js/app.js', './js/diagram.js', './js/exercises.js', './js/program.js', './js/logic.js', './js/store.js', './js/charts.js', './js/bodymap.js', './js/howto.js', './js/foods.js', './js/ai.js',
+  './js/app.js', './js/diagram.js', './js/exercises.js', './js/program.js', './js/logic.js', './js/store.js', './js/charts.js', './js/bodymap.js', './js/howto.js', './js/foods.js', './js/ai.js', './js/gym.js',
   './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png',
 ];
 

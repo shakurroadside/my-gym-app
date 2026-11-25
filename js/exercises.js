@@ -560,6 +560,44 @@ export const LIBRARY = [
   },
 ];
 
+// ───────────── FIT4LESS (Edmonton North) — equipment seen in your photos ─────────────
+const copyD = (id, props, extra = {}) => ({ ...LIBRARY.find((e) => e.id === id).d, ...extra, props });
+LIBRARY.push(
+  {
+    id: 'glute-drive', name: 'Glute Drive (Nautilus)', muscle: 'Legs', target: 'Glutes, hamstrings',
+    equip: 'Machine', type: 'reps', unit: 'lb', inc: 10,
+    cues: ['Drive through your heels and push your hips up.', 'At the top: hips level with your knees, squeeze glutes hard for 1 second.', 'Chin tucked — look forward at your knees, not up at the ceiling.', 'Lower slowly until your hips are just above the seat.'],
+    avoid: 'Arching your lower back at the top instead of squeezing your glutes.',
+    d: {
+      A: { x: 80, y: 128, t: -150, hd: -160, ua: 175, fa: 175, th: -20, sh: 70, ft: 0 },
+      B: { x: 86, y: 105, t: 180, hd: -160, ua: 175, fa: 175, th: 8, sh: 88, ft: 0 },
+      props: [FLOOR, { k: 'pad', p: [[18, 116], [58, 108]], w: 7 }, { k: 'line', p: [[30, 118], [30, 157]] }, { k: 'roller', at: 'hip', dy: -9, r: 6, front: true }, { k: 'plate', at: 'hip', r: 11 }],
+      hl: ['leg', 'torso'],
+    },
+  },
+  {
+    id: 'bb-bench', name: 'Barbell Bench Press', muscle: 'Chest', target: 'Chest, front shoulders, triceps',
+    equip: 'Barbell', type: 'reps', unit: 'lb', inc: 10,
+    cues: ['Unrack with straight arms, bar over your shoulders.', 'Lower the bar slowly to your lower chest (nipple line).', 'Elbows about 45° from your body, not flared out.', 'Press back up and slightly back toward the rack.'],
+    avoid: 'Going heavy without a spotter — this bench has no safety bars. Stop 2 reps before failure.',
+    d: copyD('db-bench-press', [FLOOR, { k: 'pad', p: [[40, 112], [120, 112]], w: 6 }, { k: 'line', p: [[60, 115], [60, 157]] }, { k: 'line', p: [[110, 115], [110, 157]] }, { k: 'line', p: [[52, 157], [52, 40]] }, { k: 'plate', at: 'ha', r: 13, front: true }]),
+  },
+  {
+    id: 'bb-incline', name: 'Incline Barbell Press', muscle: 'Chest', target: 'Upper chest, front shoulders',
+    equip: 'Barbell', type: 'reps', unit: 'lb', inc: 10,
+    cues: ['Sit, feet flat, back and head on the pad.', 'Unrack and hold the bar over your upper chest.', 'Lower to just below your collarbones.', 'Press up in a straight line.'],
+    avoid: 'Bouncing the bar off your chest or lifting your hips.',
+    d: copyD('incline-db-press', [FLOOR, { k: 'pad', p: [[112, 120], [70, 82]], w: 6 }, { k: 'line', p: [[95, 116], [95, 157]] }, { k: 'line', p: [[58, 157], [58, 30]] }, { k: 'plate', at: 'ha', r: 13, front: true }]),
+  },
+  {
+    id: 'ez-curl', name: 'EZ-Bar Curl', muscle: 'Arms', target: 'Biceps, forearms',
+    equip: 'Barbell', type: 'reps', unit: 'lb', inc: 10,
+    cues: ['Use a fixed EZ bar from the rack; grip the inner angled handles, palms up.', 'Elbows pinned at your sides.', 'Curl up, squeeze, lower slowly all the way.'],
+    avoid: 'Swinging your hips to get the bar up.',
+    d: copyD('db-curl', [FLOOR, { k: 'plate', at: 'ha', r: 9, front: true }]),
+  },
+);
+
 // Fit4Less: dumbbells run 5–75 lb in 5 lb steps.
 for (const e of LIBRARY) if (e.equip === 'Dumbbell') { e.unit = 'lb'; e.inc = 5; }
 

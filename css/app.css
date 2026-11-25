@@ -326,3 +326,8 @@ label.btn.big { width: 100%; }
 .shots img.zoom { height: auto; max-width: 100%; }
 details.tip { background: var(--card2); border-radius: 12px; padding: 10px 12px; margin: 6px 0 10px; font-size: 14px; }
 details.tip summary { font-weight: 700; cursor: pointer; color: var(--accent); }
+
+.gym-box { display: flex; gap: 10px; align-items: flex-start; background: color-mix(in srgb, var(--accent) 12%, var(--card2)); border-radius: 12px; padding: 10px 12px; margin: 10px 0; font-size: 14px; }
+.gym-box small { display: block; color: var(--muted); margin-top: 2px; }
+.gym-box.warnbox { background: color-mix(in srgb, var(--down) 12%, var(--card2)); }
+.tag.q { background: color-mix(in srgb, var(--down) 25%, transparent); color: var(--down); }
