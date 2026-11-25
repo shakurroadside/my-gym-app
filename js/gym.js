@@ -6,6 +6,14 @@ export const GYM_NAME = 'Fit4Less · Edmonton North';
 // exId → where to do it + gym-specific tip. Units/jumps default from here unless you change them.
 const LNL = 'Inspiration machine with Lock N Load: flip the plate you want to ON, all others OFF.';
 export const GYM = {
+  'hip-abduction': { where: 'Nautilus Inspiration Abduction/Adduction', unit: 'lb', inc: 10, tip: LNL },
+  'hip-adduction': { where: 'Nautilus Inspiration Abduction/Adduction', unit: 'lb', inc: 10, tip: LNL },
+  'glute-press': { where: 'Nautilus Inspiration Glute Press (or the Glute Coaster TL next to it)', unit: 'lb', inc: 10, tip: LNL },
+  'trx-row': { where: 'Functional area — suspension straps on the rig', tip: '' },
+  'kb-swing': { where: 'Functional area — kettlebell rack', unit: 'lb', inc: 10, tip: '' },
+  'ball-slam': { where: 'Functional area — slam/medicine balls on the turf', unit: 'lb', inc: 5, tip: '' },
+  'battle-ropes': { where: 'Functional turf — ropes along the wall', tip: 'Great 20–30 s finisher instead of a treadmill block.' },
+  'sled-push': { where: 'Functional turf — orange CoreFX sleds', tip: 'Push one length, walk back, repeat. Great fat-burn finisher.' },
   'machine-shoulder-press': { where: 'Nautilus Inspiration Shoulder Press', unit: 'lb', inc: 10, tip: 'Red bar at the seat base: handles start at shoulder level. Two grip options — pick the comfortable one. ' + LNL },
   'machine-triceps-ext': { where: 'Nautilus Inspiration Triceps Extension', unit: 'lb', inc: 10, tip: LNL },
   'triceps-press': { where: 'Nautilus Inspiration Triceps Press', unit: 'lb', inc: 10, tip: LNL },

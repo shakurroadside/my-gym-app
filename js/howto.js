@@ -361,6 +361,45 @@ export const HOWTO = {
     'Fixed straight bars are on the rack beside the EZ bars — weight printed on the plate.',
     'Stand tall, feet hip-width, shoulder-width grip, palms up.',
   ] },
+  'hip-abduction': { p: ['glutes'], s: [], setup: [
+    'Same Inspiration Abduction/Adduction machine — set the pads to the OUTSIDE of your knees.',
+    'Handle on the right side sets the starting width.',
+    'Back against the pad, feet on the foot bars.',
+  ] },
+  'hip-adduction': { p: ['quads'], s: [], setup: [
+    'Same machine — flip the pads to the INSIDE of your knees.',
+    'Set a comfortable starting width with the right-side handle.',
+    'Back against the pad, feet on the foot bars.',
+  ] },
+  'glute-press': { p: ['glutes'], s: ['hams'], setup: [
+    'Red knob adjusts the slide rail up or down to your start position.',
+    'Stand beside the rail with one foot on the floor, knee slightly bent.',
+    'Other foot on the slide platform; hold the handles with bent elbows.',
+  ] },
+  'trx-row': { p: ['midback', 'lats'], s: ['biceps', 'abs'], setup: [
+    'Yellow suspension straps hang from the functional rig — shorten them to mid length.',
+    'Face the anchor, handles in front of your chest, palms facing each other.',
+    'Walk your feet in, lean back with straight arms, body in one line.',
+  ] },
+  'kb-swing': { p: ['glutes', 'hams'], s: ['abs', 'lowback', 'sdelt'], setup: [
+    'Kettlebells are on the functional rack. Start with 25–35 lb.',
+    'Feet a bit wider than shoulders, bell one foot in front of you.',
+    'Hinge, grab the handle with both hands, back flat.',
+  ] },
+  'ball-slam': { p: ['abs'], s: ['fdelt', 'lats', 'glutes'], setup: [
+    'Use a SLAM ball (the softer one that doesn\'t bounce) from the functional rack, 10–20 lb.',
+    'Stand on the turf, feet shoulder-width.',
+  ] },
+  'battle-ropes': { p: ['fdelt', 'abs'], s: ['forearm', 'quads'], setup: [
+    'Ropes are anchored along the wall of the turf area.',
+    'Step back until the rope has a little slack.',
+    'Half squat, one end in each hand.',
+  ] },
+  'sled-push': { p: ['quads', 'glutes'], s: ['calves', 'abs', 'fdelt'], setup: [
+    'Orange sleds on the turf. Start with the empty sled (or one 25 lb plate per side).',
+    'Hands on the tall poles at chest height.',
+    'Lean in ~45°, arms straight.',
+  ] },
 };
 
 export function breathing(ex) {

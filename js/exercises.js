@@ -777,6 +777,86 @@ LIBRARY.push(
   },
 );
 
+const KB = { x: 96, y: 92, t: -22, hd: -10, ua: 100, fa: 105, th: 70, sh: 100, ft: -2 };
+LIBRARY.push(
+  {
+    id: 'hip-abduction', name: 'Hip Abduction (Machine)', muscle: 'Legs', target: 'Outer glutes (side of hips)',
+    equip: 'Machine', type: 'reps', unit: 'lb', inc: 10,
+    cues: ['Pads on the OUTSIDE of your knees.', 'Push your knees apart as far as you can.', 'Pause 1 second, return slowly.', 'Sit tall, back against the pad.'],
+    avoid: 'Letting the weight slam your legs back together.',
+    d: { A: s(FSE, { th: 82, ths: 0.5 }), B: s(FSE, { th: 35, ths: 0.5 }), props: [FLOOR, ...FSEAT, { k: 'roller', at: 'knR', dx: 5, r: 5, front: true }, { k: 'roller', at: 'knL', dx: -5, r: 5, front: true }], hl: ['leg'] },
+  },
+  {
+    id: 'hip-adduction', name: 'Hip Adduction (Machine)', muscle: 'Legs', target: 'Inner thighs',
+    equip: 'Machine', type: 'reps', unit: 'lb', inc: 10,
+    cues: ['Pads on the INSIDE of your knees.', 'Squeeze your knees together.', 'Pause 1 second, open slowly.', 'Sit tall, back against the pad.'],
+    avoid: 'Starting too wide — only go as far as is comfortable.',
+    d: { A: s(FSE, { th: 35, ths: 0.5 }), B: s(FSE, { th: 82, ths: 0.5 }), props: [FLOOR, ...FSEAT, { k: 'roller', at: 'knR', dx: -5, r: 5, front: true }, { k: 'roller', at: 'knL', dx: 5, r: 5, front: true }], hl: ['leg'] },
+  },
+  {
+    id: 'glute-press', name: 'Glute Press / Kickback (Machine)', muscle: 'Legs', target: 'Glutes, hamstrings',
+    equip: 'Machine', type: 'reps', unit: 'lb', inc: 10, perSide: true,
+    cues: ['Hold the handles, slight forward lean.', 'Working foot on the sliding platform.', 'Push back through the ball of the foot until the leg is straight.', 'Squeeze your glute, return slowly. Switch legs.'],
+    avoid: 'Arching your lower back to get the leg further.',
+    d: {
+      A: { x: 88, y: 84, t: -55, hd: -40, ua: -10, fa: -10, th: 60, sh: 140, ft: 60, th2: 92, sh2: 92 },
+      B: { x: 88, y: 84, t: -55, hd: -40, ua: -10, fa: -10, th: 150, sh: 160, ft: 90, th2: 92, sh2: 92 },
+      props: [FLOOR, { k: 'line', p: [[150, 157], [150, 50], [140, 50]] }, { k: 'line', p: [[10, 150], [110, 156]], w: 3 }, { k: 'handle', at: 'ha', front: true }],
+      hl: ['leg'],
+    },
+  },
+  {
+    id: 'trx-row', name: 'Suspension Strap Row (TRX)', muscle: 'Back', target: 'Upper back, lats, biceps, core',
+    equip: 'Bodyweight', type: 'reps', bw: true, inc: 0,
+    cues: ['Hold the handles, walk your feet forward and lean back, body straight.', 'Pull your chest up to your hands, elbows close to your body.', 'Lower slowly.', 'Harder: walk feet further forward.'],
+    avoid: 'Hips sagging — keep a plank from head to heels.',
+    d: {
+      A: { x: 89, y: 110, t: -145, hd: -140, ua: -20, fa: -20, th: 35, sh: 35, ft: -60 },
+      B: { x: 108, y: 91, t: -125, hd: -120, ua: 120, fa: -40, th: 55, sh: 55, ft: -40 },
+      props: [FLOOR, { k: 'cable', from: [190, 4], to: 'ha' }, { k: 'handle', at: 'ha', front: true }],
+      hl: ['arm', 'torso'],
+    },
+  },
+  {
+    id: 'kb-swing', name: 'Kettlebell Swing', muscle: 'Cardio', target: 'Glutes, hamstrings, core — fat burning',
+    equip: 'Kettlebell', type: 'reps', unit: 'lb', inc: 10,
+    cues: ['Feet a bit wider than shoulders, kettlebell in front.', 'Hike it back between your legs (hips back, back flat).', 'Snap your hips forward — the bell floats to chest height.', 'Arms just guide it; the hips do the work.'],
+    avoid: 'Squatting it or lifting with your arms/back.',
+    d: { A: KB, B: s(ST, { ua: -8, fa: -8 }), props: [FLOOR, { k: 'db', at: 'ha', r: 7, front: true }], hl: ['leg', 'torso'] },
+  },
+  {
+    id: 'ball-slam', name: 'Medicine Ball Slam', muscle: 'Core', target: 'Abs, shoulders — fat burning',
+    equip: 'Other', type: 'reps', unit: 'lb', inc: 5,
+    cues: ['Lift the ball overhead, rising on your toes.', 'Slam it down hard in front of your feet, crunching your abs.', 'Bend knees to pick it up — flat back.', 'Fast and powerful.'],
+    avoid: 'Rounding your back to pick it up.',
+    d: { A: { x: 95, y: 92, t: -88, hd: -88, ua: -98, uas: 0.75, fa: -98, fas: 0.7, th: 78, sh: 100, ft: 10 }, B: { x: 90, y: 100, t: -35, hd: -20, ua: 85, fa: 85, th: 45, sh: 110, ft: -2 }, props: [FLOOR, { k: 'db', at: 'ha', r: 9, front: true }], hl: ['torso', 'arm'] },
+  },
+  {
+    id: 'battle-ropes', name: 'Battle Ropes', muscle: 'Cardio', target: 'Shoulders, arms, core — fat burning',
+    equip: 'Other', type: 'time', bw: true, inc: 0,
+    cues: ['Half-squat stance, chest up, one rope end in each hand.', 'Whip the ropes up and down fast (waves).', 'Keep moving the whole time.', 'Breathe!'],
+    avoid: 'Standing straight up — stay in the half squat.',
+    d: {
+      A: { x: 95, y: 88, t: -75, ua: 30, fa: -30, th: 60, sh: 110, ft: 0 },
+      B: { x: 95, y: 88, t: -75, ua: 70, fa: 45, th: 60, sh: 110, ft: 0 },
+      props: [FLOOR, { k: 'cable', from: [195, 150], to: 'ha' }],
+      hl: ['arm', 'torso'],
+    },
+  },
+  {
+    id: 'sled-push', name: 'Sled Push', muscle: 'Cardio', target: 'Legs, glutes, whole body — fat burning',
+    equip: 'Other', type: 'time', bw: true, inc: 0,
+    cues: ['Hands on the tall poles, arms straight, body leaning ~45°.', 'Drive with short, powerful steps.', 'Push the length of the turf, rest, come back.', 'Add plates as you get fitter.'],
+    avoid: 'Standing too upright — lean in.',
+    d: {
+      A: { x: 80, y: 96, t: -38, hd: -25, ua: -15, fa: -15, th: 50, sh: 115, ft: 0, th2: 125, sh2: 160 },
+      B: { x: 80, y: 96, t: -38, hd: -25, ua: -15, fa: -15, th: 125, sh: 160, ft: 60, th2: 50, sh2: 115 },
+      props: [FLOOR, { k: 'line', p: [[150, 157], [190, 157]], w: 8 }, { k: 'line', p: [[155, 157], [150, 55]], w: 4 }],
+      hl: ['leg'],
+    },
+  },
+);
+
 // Fit4Less: dumbbells run 5–75 lb in 5 lb steps.
 for (const e of LIBRARY) if (e.equip === 'Dumbbell') { e.unit = 'lb'; e.inc = 5; }
 
