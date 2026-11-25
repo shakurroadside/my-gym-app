@@ -326,6 +326,17 @@ export const HOWTO = {
     'Pick the assistance: start around half your body weight (≈ 90 lb).',
     'Step up, grab the dip handles, then kneel on the pad with arms straight.',
   ] },
+  'machine-back-extension': { p: ['lowback'], s: ['glutes', 'hams'], setup: [
+    'Sit upright; pull the red knob to set the back roller on your upper back (shoulder-blade level).',
+    'Feet on the foot cross-bar, knees slightly bent.',
+    'Pull the start handle as you lean forward to set your start position, then release it.',
+    'Cross your arms on your chest.',
+  ] },
+  'seated-leg-press': { p: ['quads', 'glutes'], s: ['hams'], setup: [
+    'Sit with your back against the pad; pull the red bar at the seat base to slide the seat so your knees start at about 90°.',
+    'Feet flat on the platform, shoulder-width.',
+    'Hold the handles at your hips.',
+  ] },
 };
 
 export function breathing(ex) {

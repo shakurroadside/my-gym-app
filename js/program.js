@@ -47,6 +47,7 @@ export function defaultProgram() {
           it('face-pull', 3, 12, 15, 60),
           it('db-curl', 3, 10, 12, 60),
           it('ab-crunch-machine', 3, 10, 15, 60),
+          it('machine-back-extension', 2, 12, 15, 60),
           it('pallof-press', 3, 10, 12, 45),
         ],
       },

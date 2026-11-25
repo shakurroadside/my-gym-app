@@ -6,6 +6,8 @@ export const GYM_NAME = 'Fit4Less · Edmonton North';
 // exId → where to do it + gym-specific tip. Units/jumps default from here unless you change them.
 const LNL = 'Inspiration machine with Lock N Load: flip the plate you want to ON, all others OFF.';
 export const GYM = {
+  'machine-back-extension': { where: 'Nautilus Inspiration Back Extension', unit: 'lb', inc: 10, tip: 'Start light — this is a small muscle group. ' + LNL },
+  'seated-leg-press': { where: 'Nautilus Inspiration Leg Press (weight stack)', unit: 'lb', inc: 10, tip: 'Easier to load than the plate machine — great for learning. ' + LNL },
   'machine-chest-press': { where: 'Nautilus Inspiration Chest Press', unit: 'lb', inc: 10, tip: 'Red bar at the seat base sets height — upper arms level with the floor when holding the handles. Red knobs on the arms set the start stretch. ' + LNL },
   'machine-row': { where: 'Nautilus Inspiration Row', unit: 'lb', inc: 10, tip: 'Seat height: chest pad at mid-chest. Red knob moves the pad for the start stretch. Pull until the grips are level with your torso. ' + LNL },
   'preacher-curl-machine': { where: 'Nautilus Inspiration Bilateral Arm Curl', unit: 'lb', inc: 10, tip: 'Set the seat so your upper arms lie flat on the pad and elbows line up with the red pivot dot. ' + LNL },

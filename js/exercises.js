@@ -712,6 +712,33 @@ LIBRARY.push(
   },
 );
 
+LIBRARY.push(
+  {
+    id: 'machine-back-extension', name: 'Back Extension (Machine)', muscle: 'Core', target: 'Lower back, spinal muscles',
+    equip: 'Machine', type: 'reps', unit: 'lb', inc: 10,
+    cues: ['Start bent forward, arms crossed on your chest.', 'Push back against the roller until you are upright or slightly past.', 'Move slowly — 2 seconds back, 3 seconds forward.', 'Keep your hips planted on the seat.'],
+    avoid: 'Throwing your head back or jerking the weight.',
+    d: {
+      A: s(SS, { y: 114, t: -55, hd: -45, ua: 135, fa: -15, th: 15, sh: 70, ft: 0 }),
+      B: s(SS, { y: 114, t: -100, hd: -95, ua: 90, fa: -60, th: 15, sh: 70, ft: 0 }),
+      props: [FLOOR, ...SEAT, { k: 'roller', at: 'sh', dx: -8, dy: 2, r: 6 }, { k: 'line', p: [[130, 152], [150, 152]], w: 5 }],
+      hl: ['torso'],
+    },
+  },
+  {
+    id: 'seated-leg-press', name: 'Seated Leg Press (Machine)', muscle: 'Legs', target: 'Quads, glutes',
+    equip: 'Machine', type: 'reps', unit: 'lb', inc: 10,
+    cues: ['Feet shoulder-width on the platform, in the middle.', 'Push until legs are almost straight — don\'t lock your knees.', 'Return slowly until knees are about 90°.', 'Keep your back and hips against the seat.'],
+    avoid: 'Letting your knees cave in or your hips lift off the seat.',
+    d: {
+      A: { x: 70, y: 112, t: -125, hd: -115, ua: 80, fa: 10, th: -30, sh: 45, ft: -45 },
+      B: { x: 54, y: 112, t: -125, hd: -115, ua: 80, fa: 10, th: -3, sh: -3, ft: -85 },
+      props: [FLOOR, { k: 'follow', at: 'hip', p: [[4, 8], [-26, -34]], w: 7 }, { k: 'line', p: [[10, 128], [150, 128]], w: 4 }, { k: 'line', p: [[146, 157], [146, 128]] }, { k: 'line', p: [[138, 130], [138, 80]], w: 7 }],
+      hl: ['leg'],
+    },
+  },
+);
+
 // Fit4Less: dumbbells run 5–75 lb in 5 lb steps.
 for (const e of LIBRARY) if (e.equip === 'Dumbbell') { e.unit = 'lb'; e.inc = 5; }
 

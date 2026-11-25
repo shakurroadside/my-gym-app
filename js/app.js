@@ -24,6 +24,12 @@ if (!S.migr.delt) {
   if (it) it.exId = 'machine-lateral-raise';
   S.migr.delt = true;
 }
+if (!S.migr.bext) {
+  const d3 = S.program?.days?.find((d) => d.id === 'd3');
+  const i = d3?.items.findIndex((x) => x.exId === 'ab-crunch-machine') ?? -1;
+  if (d3 && !d3.items.some((x) => x.exId === 'machine-back-extension')) d3.items.splice(i >= 0 ? i + 1 : d3.items.length, 0, { exId: 'machine-back-extension', sets: 2, repMin: 12, repMax: 15, rest: 60 });
+  S.migr.bext = true;
+}
 if (!S.migr.curl) {
   for (const d of S.program?.days || []) for (const x of d.items) if (x.exId === 'seated-leg-curl') x.exId = 'lying-leg-curl';
   S.migr.curl = true;
