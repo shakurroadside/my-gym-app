@@ -1,16 +1,20 @@
 # My Gym
 
-A personal workout planner & tracker for iPhone, built around my own gym's machines and goals
-(lose fat 83 → 77 kg, core first, then upper body, 4 days/week).
+A personal workout, food and progress app for iPhone, built around one gym
+(Fit4Less Edmonton North) and one goal: lose fat (83 → 77 kg), core first, then upper body.
 
-- **Plan** – 4-day program (Upper Push · Legs · Upper Pull · Core focus), every day has core work and a treadmill warm-up + incline-walk finisher. Fully editable.
-- **Track** – log weight × reps (kg or lb per machine), timed holds, treadmill minutes/speed/incline. Rest timer with beep, keeps the screen awake.
-- **Progression** – each exercise has a rep range; hit the top on every set and the app tells you exactly how much to add next time.
-- **How-to** – animated diagram + step-by-step cues for every exercise. Add your own machines (with a photo) and pick the diagram that moves the same way.
-- **Progress** – body weight vs goal, waist, progress photos, records, history. Daily calorie/protein targets.
-- Works offline. Data stays on the phone (backup/restore in Settings).
+- **Plan** – 3-day full body (Mon / Wed / Fri), supersets, core every session, 7-week blocks
+  (Learn → Build → Deload), automatic warm-up sets and deload week. Roadmap: barbell squat
+  returns in Block 2; strength phase after goal weight.
+- **Workouts** – log weight × reps (kg or lb per machine), timed holds (both sides), cardio.
+  Rest timer, superset guidance, suggests when to add weight, resume after a mistaken Finish.
+- **Exercises** – every machine at the gym with diagram, setup & stance, muscle map and location tips.
+- **Food** – food log (incl. Habesha dishes, no pork / seafood), 3-meal plan scaled to the current
+  calorie target, grocery list, recipes (Osta / Instagram), plate photos, optional AI estimates.
+- **Progress** – weight, waist, photos, records, weekly check-in and an adaptive calorie coach.
+- Works offline. Data stays on the phone — back up weekly (Settings → Save backup).
 
-No build step — plain HTML/CSS/JS. Hosted with GitHub Pages.
+No build step — plain HTML/CSS/JS, hosted on GitHub Pages.
 
 ## Install on iPhone
 Open the site in **Safari** → **Share** → **Add to Home Screen**.

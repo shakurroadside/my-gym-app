@@ -1,10 +1,10 @@
 // Your default program + body targets.
 // Built for: male, 32, 175 cm, 83 kg → 77 kg, <1 year training,
-// 4 days/week, priority = belly/core, then upper body.
+// 3 days/week (Mon/Wed/Fri), priority = belly/core, then upper body.
 
 const it = (exId, sets, repMin, repMax, rest = 90, ss = null) => ({ exId, sets, repMin, repMax, rest, ...(ss ? { ss } : {}) });
 
-// Program v2 — built for: male, 32, 175 cm, 83 → 77 kg, <1 year training, 4 days/week,
+// Program v3 — built for: male, 32, 175 cm, 83 → 77 kg, <1 year training, 3 days/week,
 // priority: belly/core, then upper body. Fit4Less Edmonton North.
 // Principles: compound lift first (fresh, longer rest) → antagonist supersets (≈35% less time, same gains)
 // → core every day (anti-extension, anti-rotation, flexion, lower back) → fat-burn finisher.
@@ -62,7 +62,7 @@ export function defaultProgram() {
 }
 
 export const WHY = [
-  ['1 · Your belly is a nutrition job — your abs are a training job', 'Six controlled studies found ab exercises alone barely shrink belly fat; total fat loss does. So the calorie target (≈2,150 kcal, 150 g protein) is what flattens your stomach, and the 22 sets of core work per week build the muscle that shows when the fat is gone.'],
+  ['1 · Your belly is a nutrition job — your abs are a training job', 'Controlled trials (e.g. Vispute 2011) found that ab exercises alone don\'t noticeably shrink belly fat — losing body fat overall does. So the calorie target (≈2,150 kcal, 150 g protein) is what flattens your stomach, and the ≈19 sets of core work per week build the muscle that shows when the fat is gone.'],
   ['2 · Core every session, from every angle', 'Flexion (cable crunch, ab crunch, reverse crunch, leg raise) for the six-pack; anti-rotation (Pallof, side plank) for a tight waist; anti-extension (dead bug) for deep abs; back extension so your lower back stays balanced and pain-free. Friday trains core FIRST, while you\'re fresh. ≈19 core sets per week.'],
   ['3 · Upper body gets the most volume', 'Per week: back ≈12 sets, chest ≈8 (+ shoulder presses), side shoulders 4 direct (+ presses & face pulls), triceps 3 + biceps 3 direct (+ all presses & pulls). With 3 days, full-body sessions hit every muscle 2–3× a week — better than a split for your schedule.'],
   ['4 · Big lift first, then supersets', 'Each day starts with one heavy compound (bench, trap-bar deadlift, pull-up) with full rest — that\'s what keeps your strength while you lose weight. Then exercises are paired (B1 → B2, rest, repeat). Pairing opposite muscles cuts session time by about a third with the same gains. Every session ≈ 75–80 minutes including cardio.'],

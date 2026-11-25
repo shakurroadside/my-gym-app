@@ -60,3 +60,6 @@ for (const id of ['db-bench-press', 'incline-db-press', 'db-row', 'db-shoulder-p
 }
 for (const id of ['treadmill-incline-walk', 'treadmill-run']) GYM[id] = { where: 'Cardio area treadmills', tip: '' };
 for (const id of ['plank', 'side-plank', 'dead-bug', 'lying-leg-raise', 'reverse-crunch', 'mountain-climber', 'push-up']) GYM[id] = { where: 'Stretching / floor area (grab a mat)', tip: '' };
+
+// Library items not found at this gym — hidden from lists (kept so old logs still open).
+export const NOT_HERE = new Set(['hanging-knee-raise', 'ab-wheel', 'back-extension', 'pec-deck', 'reverse-pec-deck']);

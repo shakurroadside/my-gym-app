@@ -7,7 +7,7 @@ import { lineChart } from './charts.js';
 import { bodyMap, MUSCLE_NAMES } from './bodymap.js';
 import { HOWTO, breathing, tempo } from './howto.js';
 import { FOODS, FOOD, FOOD_CATS, MEALS, MEAL_SLOTS, itemTotals } from './foods.js';
-import { GYM, GYM_NAME } from './gym.js';
+import { GYM, GYM_NAME, NOT_HERE } from './gym.js';
 import { getKey, setKey, estimatePlate, extractRecipe } from './ai.js';
 
 let S = load();
@@ -85,7 +85,8 @@ function getEx(id) {
   return { ...base, gym: g.where ? g : null, unit: ov.unit || g.unit || base.unit || 'kg', inc: ov.inc ?? g.inc ?? base.inc ?? 0 };
 }
 const diagramOf = (ex) => ex?.d || LIB[ex?.like]?.d || LIB.plank.d;
-const allEx = () => [...LIBRARY.map((e) => getEx(e.id)), ...Object.keys(S.customEx).map(getEx)];
+const inPlan = (id) => S.program.days.some((d) => d.items.some((x) => x.exId === id));
+const allEx = () => [...LIBRARY.filter((e) => !NOT_HERE.has(e.id) || inPlan(e.id)).map((e) => getEx(e.id)), ...Object.keys(S.customEx).map(getEx)];
 
 function history(exId) {
   const out = [];
@@ -142,6 +143,9 @@ function render(scrollTop = false) {
   document.body.classList.toggle('in-workout', route === 'workout');
   $('#nav').innerHTML = TABS.map(([k, label, ic]) => `<button data-act="nav" data-to="${k}" class="${route === k ? 'on' : ''}">${icon(ic)}<span>${label}</span></button>`).join('');
   window.scrollTo(0, scrollTop ? 0 : y);
+  const hdr = main.querySelector('header.top');
+  if (hdr && !['settings', 'workout', 'checkin'].includes(route) && !hdr.querySelector('[data-to="settings"]'))
+    hdr.insertAdjacentHTML('beforeend', `<button class="ib gear" data-act="nav" data-to="settings" aria-label="Settings">${icon('gear')}</button>`);
   if (route === 'progress') loadPhotos();
   if (route === 'food') loadMealPhotos();
   tick();
@@ -176,6 +180,12 @@ function vToday() {
   <header class="top"><div><p class="eyebrow">${fmtDate(Date.now(), { weekday: 'long', day: 'numeric', month: 'long' })}</p><h1>${hello}${S.profile.name ? ', ' + esc(S.profile.name) : ''}</h1></div><button class="ib" data-act="nav" data-to="settings" aria-label="Settings">${icon('gear')}</button></header>
   ${isIOS && !standalone ? `<div class="card hint">📲 <b>Install on your iPhone:</b> tap the <b>Share</b> button in Safari → <b>Add to Home Screen</b>. It then opens like an app and works offline.</div>` : ''}
   ${resumable() ? `<div class="card undo-card"><div><b>Finished ${esc(resumable().dayName.split('·')[0].trim())} by mistake?</b><small>Ended ${fmtDur(Date.now() - resumable().end)} ago</small></div><button class="btn sm" data-act="wo-resume" data-id="${resumable().id}">↩︎ Resume</button></div>` : ''}
+  ${(() => {
+    const has = S.workouts.length || S.body.length || Object.keys(S.food || {}).length;
+    const age = S.lastBackup ? Math.floor((Date.now() - S.lastBackup) / 864e5) : null;
+    if (!has || (age !== null && age < 7)) return '';
+    return `<div class="card backup-card"><div><b>💾 Back up your data</b><small>${age === null ? 'Never backed up' : `Last backup ${age} days ago`} — your logs live only on this phone.</small></div><button class="btn sm primary" data-act="export">Save</button></div>`;
+  })()}
   ${S.active ? `<button class="card resume" data-act="nav" data-to="workout"><span class="pulse"></span><div><b>Workout in progress</b><small>${esc(S.active.dayName)} · started ${fmtDur(Date.now() - S.active.start)} ago</small></div><span class="chev">Resume ›</span></button>` : ''}
 
   ${day ? `<section class="card next">
@@ -436,7 +446,7 @@ function vFood() {
     const list = d[slot] || [];
     const st = slotTotals(list);
     const pid = d.photos?.[slot];
-    const pm = MEALS[slot][plan.days[dow][slot]];
+    const pm = scaledDay(plan.days[dow])[slot];
     return `<section class="card meal">
       <div class="split"><h3>${emo} ${title}</h3><span class="muted small">${r0(st.k)} kcal · ${r0(st.p)} g P</span></div>
       ${pid ? `<div class="meal-photo"><img data-photo-id="${pid}" alt="Plate photo"><div class="btn-row"><button class="btn sm primary" data-act="ai-est" data-slot="${slot}">✨ Estimate calories</button><button class="btn sm" data-act="meal-photo-del" data-slot="${slot}">Remove photo</button></div></div>` : ''}
@@ -452,19 +462,34 @@ function vFood() {
   <p class="muted small pad">Numbers are estimates — being roughly right every day beats being perfect some days. Your weekly weight trend tells you if it's working.</p>`;
 }
 
+// Scale a plan day to the current calorie target: protein foods stay the same,
+// carb/fat foods are scaled (0.6–1.3×). Portions rounded to ½ (or ¼ under 1).
+function scaledDay(day) {
+  const T = myTargets();
+  const raw = MEAL_SLOTS.map(([slot]) => [slot, MEALS[slot][day[slot]]]);
+  const isProt = (f) => f.k > 0 && (f.p * 4) / f.k >= 0.3;
+  let pk = 0, ok = 0;
+  for (const [, m] of raw) for (const [id, q] of m.items) { const f = FOOD[id]; if (isProt(f)) pk += f.k * q; else ok += f.k * q; }
+  const fct = ok ? Math.min(1.3, Math.max(0.6, (T.kcal - pk) / ok)) : 1;
+  const rq = (q) => { const v = q * fct; return v >= 1 ? Math.max(0.5, Math.round(v * 2) / 2) : Math.max(0.25, Math.round(v * 4) / 4); };
+  const out = {};
+  for (const [slot, m] of raw) out[slot] = { ...m, items: m.items.map(([id, q]) => [id, isProt(FOOD[id]) ? q : rq(q)]) };
+  return out;
+}
+
 function vMealPlan(T) {
   const plan = weekPlan();
   const dow = (new Date().getDay() + 6) % 7;
   const names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   return `
   <section class="card">
-    <p class="muted small">Target ${T.kcal} kcal · ${T.protein} g protein. Each day below lands close to that. Tap any meal to swap it. Meal 3 is your post-gym meal — it has the most carbs to refuel.</p>
+    <p class="muted small">Target ${T.kcal} kcal · ${T.protein} g protein. Portions are adjusted automatically to your current target (protein stays, carbs & fats move). Tap any meal to swap it. Meal 3 is your post-gym meal — it has the most carbs to refuel.</p>
     <button class="btn sm" data-act="grocery">🛒 Grocery list for the week</button>
   </section>
   ${plan.days.map((day, i) => {
     let tk = 0, tp = 0;
     const rows = MEAL_SLOTS.map(([slot, title, emo]) => {
-      const m = MEALS[slot][day[slot]];
+      const m = scaledDay(day)[slot];
       const t = itemTotals(m.items, mealLookup);
       tk += t.k; tp += t.p;
       return `<li><button class="link" data-act="plan-swap" data-d="${i}" data-slot="${slot}"><span>${emo} <b>${esc(m.name)}</b><small>${m.items.map(([id, q]) => `${qtyTxt(q)} ${esc(FOOD[id].name.toLowerCase())}`).join(', ')}</small></span><span class="kc">${r0(t.k)}<small>${r0(t.p)} g P</small></span></button></li>`;
@@ -477,7 +502,7 @@ function vMealPlan(T) {
 function grocerySheet() {
   const plan = weekPlan();
   const tot = {};
-  for (const day of plan.days) for (const [slot] of MEAL_SLOTS) for (const [id, q] of MEALS[slot][day[slot]].items) tot[id] = (tot[id] || 0) + q;
+  for (const day of plan.days) { const sd = scaledDay(day); for (const [slot] of MEAL_SLOTS) for (const [id, q] of sd[slot].items) tot[id] = (tot[id] || 0) + q; }
   const rows = Object.entries(tot).sort((a, z) => FOOD[a[0]].cat.localeCompare(FOOD[z[0]].cat)).map(([id, q]) => {
     const f = FOOD[id];
     const grams = f.g ? ` <span class="muted">(≈ ${q * f.g >= 1000 ? (Math.round((q * f.g) / 100) / 10) + ' kg' : Math.round(q * f.g) + ' g'} cooked)</span>` : '';
@@ -940,7 +965,7 @@ function vSettings() {
   </section>
   <section class="card form">
     <h3>Backup</h3>
-    <p class="muted small">Your data is stored only on this phone. Save a backup now and then (to Files / iCloud Drive).</p>
+    <p class="muted small">Your data is stored only on this phone. Tap Save backup → <b>Save to Files</b> → <b>iCloud Drive</b>. The app reminds you every 7 days.${S.lastBackup ? ` Last backup: ${fmtDate(S.lastBackup)}.` : ''}</p>
     <div class="btn-row"><button class="btn" data-act="export">Save backup</button><label class="btn">Restore backup<input type="file" accept="application/json,.json" hidden data-in="import"></label></div>
   </section>
   <section class="card form">
@@ -1064,7 +1089,7 @@ function exCard(e, i, lbl = '') {
   const sugCls = e.sug?.kind === 'up' ? 'up' : e.sug?.kind === 'down' ? 'down' : '';
   return `<section class="card ex ${allDone ? 'is-done' : ''}" id="ex-${i}">
     <div class="ex-head">
-      <button class="link" data-act="ex-detail" data-id="${e.exId}">${svg(diagramOf(ex), 1, 'thumb')}<span><b>${ssTag(lbl)}${esc(ex.name)}</b><small>${lbl.endsWith('1') ? 'Superset → go straight to ' + lbl.slice(0, -1) + '2 · ' : ''}${e.item.sets} × ${e.item.repMin}–${e.item.repMax}${isTime ? 's' : ''}${ex.perSide ? ' each side' : ''} · rest ${e.item.rest}s</small></span></button>
+      <button class="link" data-act="ex-detail" data-id="${e.exId}">${svg(diagramOf(ex), 1, 'thumb')}<span><b>${ssTag(lbl)}${esc(ex.name)}</b><small>${lbl.endsWith('1') ? `Superset · then walk to ${lbl.slice(0, -1)}2 (${e.item.rest}s to get there) · ` : ''}${e.item.sets} × ${e.item.repMin}–${e.item.repMax}${isTime ? 's' : ''}${ex.perSide ? ' each side' : ''}${lbl.endsWith('1') ? '' : ` · rest ${e.item.rest}s`}</small></span></button>
       <div class="tools"><button class="ib" data-act="ex-detail" data-id="${e.exId}" aria-label="How to">${icon('info')}</button><button class="ib" data-act="wk-swap" data-i="${i}" aria-label="Swap">${icon('swap')}</button><button class="ib" data-act="wk-del" data-i="${i}" aria-label="Remove">${icon('x')}</button></div>
     </div>
     ${e.sug?.msg ? `<p class="sug ${sugCls}">${esc(e.sug.msg)}</p>` : ''}
@@ -1161,8 +1186,8 @@ function beep(n = 3) {
   }
   navigator.vibrate?.([200, 100, 200]);
 }
-function startTimer(sec, label = 'Rest') {
-  T = { end: Date.now() + sec * 1000, total: sec, label };
+function startTimer(sec, label = 'Rest', after = null) {
+  T = { end: Date.now() + sec * 1000, total: sec, label, after };
   tick();
 }
 function stopTimer() { T = null; tick(); }
@@ -1173,11 +1198,12 @@ function tick() {
   if (!T) { el.hidden = true; return; }
   const left = (T.end - Date.now()) / 1000;
   if (left <= 0) {
-    const lbl = T.label;
+    const lbl = T.label, after = T.after;
     T = null;
     el.hidden = true;
     beep();
-    toast(lbl === 'Hold' ? 'Time! ✅ Tick the set.' : 'Rest over — next set! 💪');
+    if (after) { toast('Switch sides! 🔄'); startTimer(after.sec, after.label); return; }
+    toast(lbl.startsWith('Hold') ? 'Time! ✅ Tick the set.' : lbl.startsWith('Go to') ? `${lbl} now 💪` : 'Rest over — next set! 💪');
     return;
   }
   el.hidden = false;
@@ -1440,7 +1466,8 @@ const A = {
     commit(); render(); toast('Copied from yesterday');
   },
   'log-plan': (el) => {
-    const slot = el.dataset.slot, m = MEALS[slot].find((x) => x.id === el.dataset.m);
+    const slot = el.dataset.slot, plan = weekPlan(), dow = (new Date(ui.foodDay + 'T12:00:00').getDay() + 6) % 7;
+    const m = scaledDay(plan.days[dow])[slot];
     foodDay()[slot].push(...m.items.map(([fid, q]) => ({ id: uid(), fid, q })));
     commit(); render(); toast(`Logged ${m.name}`);
   },
@@ -1448,7 +1475,8 @@ const A = {
     const day = weekPlan().days[+el.dataset.d];
     ui.foodDay = dayKey(Date.now());
     const fd = foodDay();
-    for (const [slot] of MEAL_SLOTS) if (!fd[slot].length) fd[slot].push(...MEALS[slot][day[slot]].items.map(([fid, q]) => ({ id: uid(), fid, q })));
+    const sd = scaledDay(day);
+    for (const [slot] of MEAL_SLOTS) if (!fd[slot].length) fd[slot].push(...sd[slot].items.map(([fid, q]) => ({ id: uid(), fid, q })));
     ui.foodTab = 'log'; commit(); render(true); toast('Today\'s plan logged — adjust anything you changed');
   },
   'plan-swap': (el) => { const d = weekPlan().days[+el.dataset.d], s = el.dataset.slot; d[s] = (d[s] + 1) % MEALS[s].length; commit(); render(); },
@@ -1554,7 +1582,9 @@ const A = {
       if (ex.type === 'time' && s.secs === '') s.secs = e.item.repMin;
       const isLastSet = e.sets.every((x) => x.done);
       const isLastEx = S.active.entries.every((x) => x.sets.every((y) => y.done));
-      if (!isLastEx) startTimer(isLastSet ? Math.max(60, e.item.rest) : e.item.rest, 'Rest');
+      const L = ssLabels(S.active.entries.map((x) => x.item))[+el.dataset.i];
+      const goNext = L.endsWith('1') && !isLastSet;
+      if (!isLastEx) startTimer(isLastSet ? Math.max(60, e.item.rest) : e.item.rest, goNext ? `Go to ${L.slice(0, -1)}2` : 'Rest');
       else stopTimer();
       navigator.vibrate?.(30);
     }
@@ -1571,7 +1601,9 @@ const A = {
   hold: (el) => {
     const e = S.active.entries[+el.dataset.i], s = e.sets[+el.dataset.j];
     unlockAudio();
-    startTimer(+s.secs || e.item.repMin, 'Hold');
+    const sec = +s.secs || e.item.repMin;
+    if (getEx(e.exId)?.perSide) startTimer(sec, 'Hold · side 1', { sec: sec + 5, label: 'Hold · side 2' });
+    else startTimer(sec, 'Hold');
   },
   'ex-unit': (el) => {
     const e = S.active.entries[+el.dataset.i];
@@ -1629,6 +1661,7 @@ const A = {
 
   // settings
   export: async () => {
+    S.lastBackup = Date.now(); commit(true);
     const json = await exportAll(S);
     const name = `my-gym-backup-${dayKey(Date.now())}.json`;
     const file = new File([json], name, { type: 'application/json' });
@@ -1639,7 +1672,7 @@ const A = {
     a.href = URL.createObjectURL(file); a.download = name; a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 4000);
   },
-  'reset-plan': () => { if (confirm('Replace your plan with the recommended 4-day plan? Your history stays.')) { S.program = defaultProgram(); S.nextDay = 0; commit(true); render(); toast('Plan reset'); } },
+  'reset-plan': () => { if (confirm('Replace your plan with the recommended 3-day plan? Your history stays.')) { S.program = defaultProgram(); S.nextDay = 0; commit(true); render(); toast('Plan reset'); } },
   wipe: () => {
     if (!confirm('Erase ALL data on this phone — workouts, weights, plan? This cannot be undone.')) return;
     if (!confirm('Really erase everything?')) return;

@@ -354,3 +354,7 @@ details.tip summary { font-weight: 700; cursor: pointer; color: var(--accent); }
 .road li.now::before { background: var(--accent); }
 .road small { display: block; color: var(--muted); }
 .road p { margin: 4px 0 0; font-size: 14px; color: var(--muted); }
+
+.backup-card { display: flex; align-items: center; justify-content: space-between; gap: 10px; border-color: var(--down); }
+.backup-card small { display: block; color: var(--muted); }
+.top .gear { flex: none; align-self: flex-start; }
