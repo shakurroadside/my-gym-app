@@ -81,16 +81,18 @@ export function phase(start) {
   return { week: wk + 1, block, name: 'Deload', rir: 4, msg: 'Recovery week: same weights, do only HALF the sets. Next week we push again.' };
 }
 
-export function targets(profile, currentKg) {
+export function targets(profile, currentKg, adj = 0) {
   const w = currentKg || profile.startWeight;
   const h = profile.heightCm, a = profile.age;
   const bmr = 10 * w + 6.25 * h - 5 * a + (profile.sex === 'female' ? -161 : 5);
   const tdee = bmr * 1.5;
-  const kcal = Math.round((tdee - 500) / 50) * 50;
+  const base = Math.round((tdee - 500) / 50) * 50;
+  const floor = Math.max(profile.sex === 'female' ? 1400 : 1700, Math.round(bmr / 50) * 50);
+  const kcal = Math.max(floor, base + (adj || 0));
   const protein = Math.round((w * 1.8) / 5) * 5;
   const fat = Math.round((kcal * 0.25) / 9 / 5) * 5;
   const carbs = Math.max(0, Math.round((kcal - protein * 4 - fat * 9) / 4 / 5) * 5);
   const toLose = Math.max(0, w - profile.goalWeight);
   const weeks = Math.ceil(toLose / 0.5);
-  return { bmr: Math.round(bmr), tdee: Math.round(tdee), kcal, protein, fat, carbs, toLose, weeks };
+  return { bmr: Math.round(bmr), tdee: Math.round(tdee), base, adj: adj || 0, floor, kcal, protein, fat, carbs, toLose, weeks };
 }

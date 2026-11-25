@@ -20,6 +20,8 @@ export function defaults() {
     savedMeals: [],
     recipes: [], // {id, name, link, servings, per:{k,p,c,f}, ingredients[], steps[]}
     mealPlan: null,
+    kcalAdj: 0,
+    kcalLog: [],
     active: null,
   };
 }

@@ -118,7 +118,7 @@ function go(r) { if (location.hash.slice(1) !== r) location.hash = r; else rende
 
 function render(scrollTop = false) {
   if (route === 'workout' && !S.active) route = 'today';
-  const views = { today: vToday, plan: vPlan, food: vFood, library: vLibrary, progress: vProgress, settings: vSettings, workout: vWorkout };
+  const views = { today: vToday, plan: vPlan, food: vFood, library: vLibrary, progress: vProgress, settings: vSettings, workout: vWorkout, checkin: vCheckin };
   const y = window.scrollY;
   main.innerHTML = (views[route] || vToday)();
   document.body.classList.toggle('in-workout', route === 'workout');
@@ -140,7 +140,7 @@ function weekDots() {
 function vToday() {
   const P = S.program, day = P.days[S.nextDay % P.days.length];
   const kg = latestWeight();
-  const T = targets(S.profile, kg);
+  const T = myTargets(kg);
   const start = S.profile.startWeight, goal = S.profile.goalWeight;
   const pct = Math.max(0, Math.min(100, ((start - kg) / Math.max(0.1, start - goal)) * 100));
   const wkCount = S.workouts.filter((w) => w.start >= startOfWeek()).length;
@@ -183,6 +183,7 @@ function vToday() {
   </section>
 
   ${(() => { const ft = dayTotals(dayKey(Date.now())); return `<button class="card food-card" data-act="nav" data-to="food"><div class="split"><div><p class="eyebrow">Food today</p><h3>${r0(ft.k)} / ${T.kcal} kcal</h3></div><span class="chev accent">Log food ›</span></div><div class="bar"><span style="width:${Math.min(100, (ft.k / T.kcal) * 100)}%"></span></div><p class="muted small">Protein ${r0(ft.p)} / ${T.protein} g</p></button>`; })()}
+  ${(() => { const dow = (new Date().getDay() + 6) % 7; const due = dow >= 4 || dow === 0; return `<button class="card ci-card ${due ? 'due' : ''}" data-act="checkin"><div class="split"><div><p class="eyebrow">${due ? 'Ready now' : 'Last week'}</p><h3>📋 Weekly check-in</h3><small class="muted">Training · food · weight · calorie coach</small></div><span class="chev accent">Open ›</span></div></button>`; })()}
   <section class="card">
     <p class="eyebrow">Daily targets for fat loss</p>
     <div class="stats">
@@ -190,7 +191,7 @@ function vToday() {
       <div><b>${T.protein} g</b><small>protein</small></div>
       <div><b>8–10k</b><small>steps</small></div>
     </div>
-    <p class="muted small">≈ ${T.carbs} g carbs · ${T.fat} g fat · 2.5–3 L water. Protein at every meal keeps your muscle while the fat comes off. Estimated maintenance: ${T.tdee} kcal/day.</p>
+    <p class="muted small">≈ ${T.carbs} g carbs · ${T.fat} g fat · 2.5–3 L water. Protein at every meal keeps your muscle while the fat comes off. Estimated maintenance: ${T.tdee} kcal/day.${T.adj ? ` Includes your coach adjustment (${T.adj > 0 ? '+' : ''}${T.adj} kcal).` : ''}</p>
   </section>`;
 }
 
@@ -294,7 +295,7 @@ function vProgress() {
   const wos = [...S.workouts].reverse();
 
   return `
-  <header class="top"><div><p class="eyebrow">Progress</p><h1>${body.length > 1 ? `${fmtW(Math.abs(Math.round((kg - first) * 10) / 10))} kg ${kg <= first ? 'lost' : 'gained'}` : 'Your progress'}</h1></div><button class="btn sm primary" data-act="weigh">Log weight</button></header>
+  <header class="top"><div><p class="eyebrow">Progress</p><h1>${body.length > 1 ? `${fmtW(Math.abs(Math.round((kg - first) * 10) / 10))} kg ${kg <= first ? 'lost' : 'gained'}` : 'Your progress'}</h1></div><div class="btn-row" style="margin:0"><button class="btn sm" data-act="checkin">📋 Check-in</button><button class="btn sm primary" data-act="weigh">Log weight</button></div></header>
 
   <section class="card">
     <div class="split"><h3>Body weight</h3><small class="muted">${body.length} entries</small></div>
@@ -381,7 +382,7 @@ function weekPlan() {
 function vFood() {
   ui.foodDay = ui.foodDay || dayKey(Date.now());
   const today = dayKey(Date.now());
-  const T = targets(S.profile, latestWeight());
+  const T = myTargets();
   const ft = ui.foodTab || 'log';
   const tabs = `<div class="seg three">${[['log', 'Food log'], ['plan', 'Meal plan'], ['recipes', 'Recipes']].map(([k, l]) => `<button class="${ft === k ? 'on' : ''}" data-act="food-tab" data-t="${k}">${l}</button>`).join('')}</div>`;
   if (ft === 'recipes') return `<header class="top"><div><p class="eyebrow">From Osta & videos</p><h1>Recipes</h1></div></header>${tabs}${vRecipes()}`;
@@ -736,6 +737,156 @@ async function recipeAI(blobs, text) {
   } catch (e) {
     openSheet(`<div class="done-sheet"><div class="big-emoji">😕</div><h2>Couldn't read it</h2><p>${esc(e.message)}</p><button class="btn big" data-act="rec-new">Try another way</button></div>`);
   }
+}
+
+// ───────────────────────── WEEKLY CHECK-IN + CALORIE COACH ─────────────────────────
+const DAY = 864e5;
+const myTargets = (kg = latestWeight()) => targets(S.profile, kg, S.kcalAdj || 0);
+const mean = (xs) => xs.reduce((a, b) => a + b, 0) / xs.length;
+
+function weighAvg(a, b) {
+  const xs = (S.body || []).filter((x) => x.date >= a && x.date < b).map((x) => +x.kg);
+  return xs.length ? { avg: mean(xs), n: xs.length } : null;
+}
+function waistAvg(a, b) {
+  const xs = (S.body || []).filter((x) => x.date >= a && x.date < b && x.waist).map((x) => +x.waist);
+  return xs.length ? mean(xs) : null;
+}
+// kg lost per week, from 7-day averages (2-week span when possible)
+function weightRate(end) {
+  const w0 = weighAvg(end - 7 * DAY, end), w1 = weighAvg(end - 14 * DAY, end - 7 * DAY), w2 = weighAvg(end - 21 * DAY, end - 14 * DAY);
+  if (!w0 || w0.n < 2) return null;
+  if (w2 && w2.n >= 2) return { rate: (w2.avg - w0.avg) / 2, cur: w0.avg, prev: w1?.avg ?? null, span: 2 };
+  if (w1 && w1.n >= 2) return { rate: w1.avg - w0.avg, cur: w0.avg, prev: w1.avg, span: 1 };
+  return null;
+}
+function weekKeys(ws) {
+  const out = [];
+  const d = new Date(ws);
+  for (let i = 0; i < 7; i++) { out.push(dayKey(d.getTime())); d.setDate(d.getDate() + 1); }
+  return out;
+}
+function foodWeek(ws) {
+  const days = weekKeys(ws).filter((k) => { const d = peekDay(k); return d && MEAL_SLOTS.some(([sl]) => d[sl]?.length); });
+  if (!days.length) return { days: 0 };
+  const tots = days.map(dayTotals);
+  return { days: days.length, kcal: mean(tots.map((t) => t.k)), protein: mean(tots.map((t) => t.p)), proteinHit: tots.filter((t) => t.p >= myTargets().protein * 0.9).length };
+}
+
+function calorieCoach(end, fw) {
+  const T = myTargets();
+  const r = weightRate(end);
+  const last = (S.kcalLog || []).slice(-1)[0];
+  const waitUntil = last ? last.date + 13 * DAY : 0;
+  if (!r) return { status: 'data', title: 'Need more weigh-ins', msg: 'Weigh yourself at least 3 mornings a week (after the toilet, before eating). After 2 weeks I can tune your calories.', delta: 0 };
+  const lo = r.cur * 0.004, hi = r.cur * 0.01;
+  const rateTxt = `${r.rate >= 0 ? 'Losing' : 'Gaining'} ${Math.abs(Math.round(r.rate * 100) / 100)} kg/week (target ${Math.round(lo * 10) / 10}–${Math.round(hi * 10) / 10})`;
+  if (fw.days >= 4 && fw.kcal > T.kcal + 150 && r.rate < lo)
+    return { status: 'adherence', title: 'Hit the target first', msg: `${rateTxt}. You averaged ${r0(fw.kcal)} kcal on logged days — ${r0(fw.kcal - T.kcal)} over your ${T.kcal} target. Lowering the target won't help until you're eating close to it.`, delta: 0 };
+  let delta = 0, title = 'On track 👌', msg = `${rateTxt}. Keep calories at ${T.kcal}.`;
+  if (r.rate < lo) { delta = r.rate <= 0 ? -150 : -100; title = 'Progress slowed'; msg = `${rateTxt}. Lower your target by ${-delta} kcal to get fat loss moving again.`; }
+  else if (r.rate > hi) { delta = 100; title = 'Losing too fast'; msg = `${rateTxt}. Faster than this risks losing muscle and energy for training. Add ${delta} kcal (mostly carbs around workouts).`; }
+  if (delta && T.kcal + delta < T.floor) { delta = 0; title = 'At the minimum'; msg = `${rateTxt}. Your target is already at the safe minimum (${T.floor} kcal). Add 2,000 steps a day instead of eating less.`; }
+  if (last && Date.now() - last.date < DAY) return { status: 'ok', title: 'Change applied ✓', msg: `New target: ${T.kcal} kcal/day from today. Stick to it for 2 weeks, keep weighing in, and the next check-in will tell us if it worked.`, delta: 0 };
+  if (delta && Date.now() < waitUntil) return { status: 'wait', title, msg: msg + ` Your last change was ${fmtDate(last.date, { day: 'numeric', month: 'short' })} — give it 2 weeks; next change possible ${fmtDate(waitUntil, { weekday: 'short', day: 'numeric', month: 'short' })}.`, delta: 0, pending: delta };
+  return { status: delta ? 'change' : 'ok', title, msg, delta, rate: r };
+}
+
+function checkinWeekStart() {
+  const off = ui.ciOff || 0;
+  const dow = (new Date().getDay() + 6) % 7; // Mon=0
+  const base = startOfWeek() - (dow < 4 ? 7 * DAY : 0); // Mon–Thu: review last week; Fri–Sun: this week
+  return startOfWeek(base - off * 7 * DAY + DAY);
+}
+
+function vCheckin() {
+  const ws = checkinWeekStart(), we = ws + 7 * DAY, now = Date.now();
+  const end = Math.min(we, now);
+  const T = myTargets();
+  const P = S.program;
+  const wos = S.workouts.filter((w) => w.start >= ws && w.start < we);
+  const planned = {}, done = {};
+  for (const d of P.days) for (const x of d.items) { const ex = getEx(x.exId); if (ex && ex.muscle !== 'Cardio') planned[ex.muscle] = (planned[ex.muscle] || 0) + x.sets; }
+  let vol = 0, mins = 0, cardioMin = 0;
+  for (const w of wos) {
+    mins += (w.end - w.start) / 60000;
+    for (const c of w.cardio || []) cardioMin += +c.min || 0;
+    for (const e of w.entries) {
+      const ex = getEx(e.exId);
+      vol += entryStats(e, e.unit).vol;
+      if (ex && ex.muscle !== 'Cardio') done[ex.muscle] = (done[ex.muscle] || 0) + workingSets(e).length;
+    }
+  }
+  // records & weight increases this week
+  const prs = [];
+  for (const w of wos) for (const e of w.entries) {
+    const ex = getEx(e.exId);
+    if (ex?.type !== 'reps') continue;
+    const before = S.workouts.filter((o) => o.start < w.start).flatMap((o) => o.entries.filter((x) => x.exId === e.exId)).reduce((m, h) => Math.max(m, entryStats(h, h.unit).best), 0);
+    if (before > 0 && entryStats(e, e.unit).best > before + 0.01 && !prs.includes(ex.name)) prs.push(ex.name);
+  }
+  const fw = foodWeek(ws);
+  const wk = weighAvg(ws, we), wkPrev = weighAvg(ws - 7 * DAY, ws);
+  const waist = waistAvg(ws, we), waistPrev = waistAvg(ws - 28 * DAY, ws);
+  const coach = calorieCoach(end, fw);
+  const ph = phase(P.start);
+  const nextPh = phase((P.start || now) - 7 * DAY);
+
+  // recommendations
+  const rec = [];
+  if (wos.length < P.days.length) rec.push(['📅', `You trained ${wos.length} of ${P.days.length} days. Consistency beats everything — book your sessions like appointments (Mon · Wed · Fri).`]);
+  else rec.push(['✅', `All ${P.days.length} workouts done. That's exactly how results happen.`]);
+  if (fw.days < 4) rec.push(['🍽', `Food logged on ${fw.days}/7 days. Log at least 5 days (photo + quick add counts) so the calorie advice is accurate.`]);
+  if (fw.days >= 3 && fw.protein < T.protein * 0.9) rec.push(['🥚', `Protein averaged ${r0(fw.protein)} g (target ${T.protein} g). Easy wins: +3 eggs at breakfast, a palm of chicken at lunch, ayib or Greek yogurt as a snack.`]);
+  if (!wk || wk.n < 3) rec.push(['⚖️', `Weighed in ${wk?.n || 0}× this week. Aim for 3+ mornings so we see the real trend, not water.`]);
+  if (wos.length >= P.days.length) {
+    const low = Object.entries(planned).filter(([m, n]) => (done[m] || 0) < n * 0.7).map(([m, n]) => `${m} ${done[m] || 0}/${n}`);
+    if (low.length) rec.push(['💪', `Some sets were skipped (${low.join(', ')}). Finish every pair — ${low.some((l) => l.startsWith('Core')) ? 'your core work is at the end of each session and it\'s your #1 goal.' : 'those sets are what build the muscle.'}`]);
+  }
+  if (prs.length) rec.push(['🏆', `New records: ${prs.slice(0, 4).join(', ')}${prs.length > 4 ? '…' : ''}.`]);
+  rec.push(['🗓', nextPh.name === 'Deload' ? 'Next week is a DELOAD: same weights, half the sets. The app does it for you.' : nextPh.name === 'Learn' ? 'Next week: leave ~3 reps in reserve and nail your form.' : 'Next week: push to 1–2 reps in reserve and beat last week by one rep or one weight step.']);
+
+  const muscles = MUSCLES.filter((m) => planned[m]);
+  const label = `${fmtDate(ws, { day: 'numeric', month: 'short' })} – ${fmtDate(we - DAY, { day: 'numeric', month: 'short' })}`;
+  const chg = (a, b, u, inv = false) => (a != null && b != null ? `<b class="${(a - b <= 0) !== inv ? 'accent' : 'warn'}">${a - b > 0 ? '+' : ''}${Math.round((a - b) * 10) / 10} ${u}</b>` : '<span class="muted">—</span>');
+  return `
+  <header class="top"><div><p class="eyebrow">Weekly check-in</p><h1>${label}</h1></div>
+    <div class="daynav"><button class="ib" data-act="ci-week" data-n="1" aria-label="Previous week">${icon('back')}</button><button class="ib flip" data-act="ci-week" data-n="-1" aria-label="Next week" ${!ui.ciOff ? 'disabled' : ''}>${icon('back')}</button></div></header>
+  <div class="phase ${ph.name.toLowerCase()}"><b>Block ${ph.block} · Week ${ph.week} · ${ph.name}</b><small>${ph.msg}</small></div>
+
+  <section class="card">
+    <h3>Training</h3>
+    <div class="stats"><div><b>${wos.length}/${P.days.length}</b><small>workouts</small></div><div><b>${Math.round(mins)}</b><small>minutes</small></div><div><b>${Math.round(vol).toLocaleString()}</b><small>kg lifted</small></div></div>
+    <p class="muted small">🏃 ${Math.round(cardioMin)} min treadmill logged</p>
+    <h4>Sets per muscle (done / planned)</h4>
+    ${muscles.map((m) => { const d = done[m] || 0, pl = planned[m]; return `<div class="mrow"><span>${m}</span><div class="bar"><span style="width:${Math.min(100, (d / pl) * 100)}%;${d < pl * 0.7 ? 'background:var(--down)' : ''}"></span></div><b>${d}/${pl}</b></div>`; }).join('')}
+  </section>
+
+  <section class="card">
+    <h3>Nutrition</h3>
+    ${fw.days ? `<div class="stats"><div><b>${r0(fw.kcal)}</b><small>avg kcal (${T.kcal})</small></div><div><b>${r0(fw.protein)} g</b><small>avg protein (${T.protein})</small></div><div><b>${fw.days}/7</b><small>days logged</small></div></div>
+      <p class="muted small">Protein target hit on ${fw.proteinHit} of ${fw.days} logged days.</p>` : '<p class="muted small">No food logged this week.</p>'}
+  </section>
+
+  <section class="card">
+    <h3>Body</h3>
+    <div class="stats"><div><b>${wk ? Math.round(wk.avg * 10) / 10 : '—'}</b><small>avg kg (${wk?.n || 0} weigh-ins)</small></div><div>${chg(wk?.avg ?? null, wkPrev?.avg ?? null, 'kg')}<small>vs last week</small></div><div>${chg(waist, waistPrev, 'cm')}<small>waist vs month</small></div></div>
+  </section>
+
+  <section class="card coach ${coach.status}">
+    <p class="eyebrow">Calorie coach</p>
+    <h3>${coach.title}</h3>
+    <p>${coach.msg}</p>
+    <div class="stats"><div><b>${T.kcal}</b><small>current target</small></div><div><b>${T.base}</b><small>calculated base</small></div><div><b>${T.adj > 0 ? '+' : ''}${T.adj}</b><small>adjustment</small></div></div>
+    ${coach.status === 'change' ? `<button class="btn primary big" data-act="kcal-apply" data-d="${coach.delta}">Apply: ${coach.delta > 0 ? '+' : ''}${coach.delta} kcal → ${T.kcal + coach.delta}/day</button>` : ''}
+    ${(S.kcalLog || []).length ? `<h4>Changes</h4><ul class="hist small">${S.kcalLog.slice(-5).reverse().map((l) => `<li><span>${fmtDate(l.date, { day: 'numeric', month: 'short' })}</span><span>${l.delta > 0 ? '+' : ''}${l.delta} → ${l.to} kcal</span></li>`).join('')}</ul><button class="link inline small" data-act="kcal-reset">Reset to calculated target</button>` : ''}
+  </section>
+
+  <section class="card">
+    <h3>Coach's notes for next week</h3>
+    <ul class="recs">${rec.map(([i, t]) => `<li><span>${i}</span><span>${esc(t)}</span></li>`).join('')}</ul>
+  </section>
+  <button class="btn ghost" data-act="nav" data-to="today">Back to Today</button>`;
 }
 
 // ───────────────────────── SETTINGS ─────────────────────────
@@ -1189,6 +1340,19 @@ function woDetail(id) {
 
 // ───────────────────────── actions ─────────────────────────
 const A = {
+  checkin: () => { ui.ciOff = 0; go('checkin'); },
+  'ci-week': (el) => { ui.ciOff = Math.max(0, (ui.ciOff || 0) + +el.dataset.n); render(true); },
+  'kcal-apply': (el) => {
+    const d = +el.dataset.d, T = myTargets();
+    S.kcalAdj = (S.kcalAdj || 0) + d;
+    S.kcalLog = [...(S.kcalLog || []), { date: Date.now(), delta: d, from: T.kcal, to: myTargets().kcal }];
+    commit(true); render(); toast(`New target: ${myTargets().kcal} kcal/day`);
+  },
+  'kcal-reset': () => {
+    if (!confirm('Reset your calorie target to the calculated base?')) return;
+    S.kcalAdj = 0; S.kcalLog = [...(S.kcalLog || []), { date: Date.now(), delta: 0, from: 0, to: myTargets().kcal }];
+    commit(true); render();
+  },
   'rec-new': recipeAddSheet,
   'rec-blank': () => recipeForm({}),
   'shot-view': (el) => el.classList.toggle('zoom'),
