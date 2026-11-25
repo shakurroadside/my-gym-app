@@ -337,6 +337,30 @@ export const HOWTO = {
     'Feet flat on the platform, shoulder-width.',
     'Hold the handles at your hips.',
   ] },
+  'machine-triceps-ext': { p: ['triceps'], s: [], setup: [
+    'Red bar under the seat: set height so your upper arms lie flat on the pad.',
+    'Elbows lined up with the red pivot dot.',
+    'Grip the handles, back straight.',
+  ] },
+  'triceps-press': { p: ['triceps'], s: ['chest', 'fdelt'], setup: [
+    'Red bar at the seat base sets the starting stretch (handles at about elbow-90°).',
+    'Red knob lowers the thigh pad onto your upper thighs.',
+    'Hands on the handles beside you, chest up.',
+  ] },
+  'smith-squat': { p: ['quads', 'glutes'], s: ['hams', 'abs'], setup: [
+    'Set the safety stops (red levers on the frame) just below your lowest squat.',
+    'Bar at shoulder height; duck under, bar across your upper back.',
+    'Feet shoulder-width, about one foot-length in front of the bar.',
+  ] },
+  'smith-incline': { p: ['chest'], s: ['fdelt', 'triceps'], setup: [
+    'Roll an adjustable bench into the Smith machine, back at 30°.',
+    'Line up the bar with your upper chest; set the safety stops just above your chest.',
+    'Grip slightly wider than shoulders, feet flat.',
+  ] },
+  'bb-curl': { p: ['biceps'], s: ['forearm'], setup: [
+    'Fixed straight bars are on the rack beside the EZ bars — weight printed on the plate.',
+    'Stand tall, feet hip-width, shoulder-width grip, palms up.',
+  ] },
 };
 
 export function breathing(ex) {

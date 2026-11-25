@@ -6,6 +6,12 @@ export const GYM_NAME = 'Fit4Less · Edmonton North';
 // exId → where to do it + gym-specific tip. Units/jumps default from here unless you change them.
 const LNL = 'Inspiration machine with Lock N Load: flip the plate you want to ON, all others OFF.';
 export const GYM = {
+  'machine-shoulder-press': { where: 'Nautilus Inspiration Shoulder Press', unit: 'lb', inc: 10, tip: 'Red bar at the seat base: handles start at shoulder level. Two grip options — pick the comfortable one. ' + LNL },
+  'machine-triceps-ext': { where: 'Nautilus Inspiration Triceps Extension', unit: 'lb', inc: 10, tip: LNL },
+  'triceps-press': { where: 'Nautilus Inspiration Triceps Press', unit: 'lb', inc: 10, tip: LNL },
+  'smith-squat': { where: 'Smith machine (by the half racks)', unit: 'lb', inc: 10, tip: 'Log only the plates you add. Twist the bar to hook/unhook.' },
+  'smith-incline': { where: 'Smith machine + adjustable bench', unit: 'lb', inc: 10, tip: 'Log only the plates you add. Good for pressing safely without a spotter.' },
+  'bb-curl': { where: 'Fixed straight-bar rack', unit: 'lb', inc: 10, tip: 'Weight printed on the bar ends. Go up one bar when the app says so.' },
   'machine-back-extension': { where: 'Nautilus Inspiration Back Extension', unit: 'lb', inc: 10, tip: 'Start light — this is a small muscle group. ' + LNL },
   'seated-leg-press': { where: 'Nautilus Inspiration Leg Press (weight stack)', unit: 'lb', inc: 10, tip: 'Easier to load than the plate machine — great for learning. ' + LNL },
   'machine-chest-press': { where: 'Nautilus Inspiration Chest Press', unit: 'lb', inc: 10, tip: 'Red bar at the seat base sets height — upper arms level with the floor when holding the handles. Red knobs on the arms set the start stretch. ' + LNL },

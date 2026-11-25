@@ -739,6 +739,44 @@ LIBRARY.push(
   },
 );
 
+LIBRARY.push(
+  {
+    id: 'machine-triceps-ext', name: 'Triceps Extension (Machine)', muscle: 'Arms', target: 'Triceps',
+    equip: 'Machine', type: 'reps', unit: 'lb', inc: 10,
+    cues: ['Upper arms flat on the pad, elbows on the red pivot dot.', 'Push the handles down/forward until arms are straight.', 'Squeeze the triceps 1 second.', 'Return slowly.'],
+    avoid: 'Lifting your elbows off the pad.',
+    d: copyD('preacher-curl-machine', [FLOOR, ...SEAT, { k: 'pad', p: [[100, 74], [122, 96]], w: 7 }, { k: 'line', p: [[130, 104], [130, 157]] }, { k: 'handle', at: 'ha', front: true }], { A: s(SS, { t: -80, ua: 45, fa: -95 }), B: s(SS, { t: -80, ua: 45, fa: 40 }) }),
+  },
+  {
+    id: 'triceps-press', name: 'Triceps Press / Seated Dip (Machine)', muscle: 'Arms', target: 'Triceps, lower chest',
+    equip: 'Machine', type: 'reps', unit: 'lb', inc: 10,
+    cues: ['Sit tall, thigh pad snug on your upper thighs.', 'Hands on the handles beside your hips.', 'Press down until arms are straight.', 'Let the handles rise slowly to about 90° elbows.'],
+    avoid: 'Leaning far forward or shrugging.',
+    d: { A: s(SS, { ua: 160, uas: 0.9, fa: 95 }), B: s(SS, { ua: 95, fa: 92 }), props: [FLOOR, ...SEAT, { k: 'pad', p: [[95, 104], [120, 104]], w: 6 }, { k: 'handle', at: 'ha', front: true }], hl: ['arm'] },
+  },
+  {
+    id: 'smith-squat', name: 'Smith Machine Squat', muscle: 'Legs', target: 'Quads, glutes',
+    equip: 'Machine', type: 'reps', unit: 'lb', inc: 10,
+    cues: ['Bar on your upper back, feet slightly in front of the bar.', 'Twist the bar to unhook it.', 'Sit down until thighs are parallel, chest up.', 'Stand up; twist to re-hook at the top.'],
+    avoid: 'Forgetting to set the safety stops just below your lowest squat.',
+    d: copyD('bb-squat', [FLOOR, { k: 'line', p: [[40, 157], [40, 4]] }, { k: 'line', p: [[165, 157], [165, 4]] }, { k: 'plate', at: 'sh', r: 13, front: true }]),
+  },
+  {
+    id: 'smith-incline', name: 'Smith Machine Incline Press', muscle: 'Chest', target: 'Upper chest, front shoulders',
+    equip: 'Machine', type: 'reps', unit: 'lb', inc: 10,
+    cues: ['Adjustable bench at 30° inside the Smith machine, bar over your upper chest.', 'Twist to unhook, lower to just below the collarbones.', 'Press up in a straight line.', 'Safer than free barbell when training alone.'],
+    avoid: 'Bench placed so the bar lands on your neck or belly.',
+    d: copyD('incline-db-press', [FLOOR, { k: 'pad', p: [[112, 120], [70, 82]], w: 6 }, { k: 'line', p: [[40, 157], [40, 4]] }, { k: 'plate', at: 'ha', r: 13, front: true }]),
+  },
+  {
+    id: 'bb-curl', name: 'Barbell Curl (Fixed Bar)', muscle: 'Arms', target: 'Biceps',
+    equip: 'Barbell', type: 'reps', unit: 'lb', inc: 10,
+    cues: ['Pick a fixed straight bar, palms up, shoulder-width grip.', 'Elbows pinned at your sides.', 'Curl up, squeeze, lower slowly.'],
+    avoid: 'Leaning back to swing the bar up.',
+    d: copyD('db-curl', [FLOOR, { k: 'plate', at: 'ha', r: 9, front: true }]),
+  },
+);
+
 // Fit4Less: dumbbells run 5–75 lb in 5 lb steps.
 for (const e of LIBRARY) if (e.equip === 'Dumbbell') { e.unit = 'lb'; e.inc = 5; }
 
